@@ -1,0 +1,46 @@
+name: Build and Package
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Create release package
+        run: |
+          VERSION=$(grep -m1 '^Version:' style.css | cut -d: -f2 | tr -d ' ')
+          mkdir -p dist/scam-dev
+          cp -r . dist/scam-dev/
+          cd dist/scam-dev
+          rm -rf node_modules .git .gitverse vendor plugins wp-content \
+            Makefile docker-compose.yml .dockerignore \
+            composer.* postcss.config.js webpack.config.js \
+            package.json package-lock.json \
+            .gitignore .eslintrc.json .config.json .env \
+            inc/search-bar.php \
+            start.sh PROJECT.md project-info.sh \
+            assets/js/main.js assets/js/app.js \
+            assets/js/components assets/scss *.zip
+          mkdir -p assets/css assets/js
+          mv build/*.css assets/css/
+          mv build/app.js assets/js/
+          rm -rf build
+          find . -type d -exec chmod 755 {} \;
+          find . -type f -exec chmod 644 {} \;
+          cd ..
+          zip -r ../scam-dev-${VERSION}.zip scam-dev/ > /dev/null
+          echo "VERSION=${VERSION}" >> $GITVERSE_ENV
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scam-dev-${{ env.VERSION }}
+          path: dist/scam-dev-*.zip

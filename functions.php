@@ -21,6 +21,7 @@ require get_template_directory() . '/inc/schema.php';
 require get_template_directory() . '/inc/seo.php';
 require get_template_directory() . '/inc/admin-vk-import.php';
 require get_template_directory() . '/inc/class-vk-import.php';
+require get_template_directory() . '/inc/class-theme-updater.php';
 
 function scam_dev_exclude_horses_from_blog( $query ) {
 	if ( ! is_admin() && $query->is_home() && $query->is_main_query() ) {
