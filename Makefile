@@ -45,12 +45,14 @@ prod: build
 	rm -rf /tmp/scam-dev-dist && \
 	echo "Ready: scam-dev-$$NEW_VERSION.zip ($$(du -h $(CURDIR)/scam-dev-$$NEW_VERSION.zip | cut -f1))"
 
-plugin:
-	rm -f scam-dev-gallery.zip
-	cd plugins && zip -r ../scam-dev-gallery.zip scam-dev-gallery/
-	@echo "Ready: scam-dev-gallery.zip ($$(du -h scam-dev-gallery.zip | cut -f1))"
+deploy: prod
+	@VERSION=$$(grep -m1 '^Version:' style.css | cut -d: -f2 | tr -d ' '); \
+	scp scam-dev-$$VERSION.zip root@YOUR_SERVER_IP:/var/www/html/scam-dev-$$VERSION.zip && \
+	scp scam-dev-$$VERSION.zip root@YOUR_SERVER_IP:/var/www/html/scam-dev-latest.zip && \
+	echo "{\"version\":\"$$VERSION\",\"download_url\":\"https://your-domain.ru/scam-dev-$$VERSION.zip\",\"requires\":\"6.5\",\"requires_php\":\"8.0\"}" | ssh root@YOUR_SERVER_IP "cat > /var/www/html/theme-update.json" && \
+	echo "Deployed v$$VERSION to your-domain.ru"
 
-all: prod plugin
+all: deploy plugin
 
 clean:
 	rm -rf build node_modules scam-dev-*.zip scam-dev-gallery.zip
