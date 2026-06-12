@@ -96,18 +96,15 @@ class Scam_Dev_VK_Import {
                     }
                     if ( $att['type'] === 'video' && isset( $att['video'] ) ) {
                         $v        = $att['video'];
-                        $video_id = $v['owner_id'] . '_' . $v['id'];
-                        $v_url    = 'https://vk.com/video' . $video_id;
-                        $title    = isset( $v['title'] ) ? $v['title'] : 'Видео';
-                        $duration = isset( $v['duration'] ) ? sprintf( '%d:%02d', intval( $v['duration'] / 60 ), $v['duration'] % 60 ) : '';
+                        $hash     = isset( $v['access_key'] ) ? $v['access_key'] : '';
+                        $embed    = 'https://vk.com/video_ext.php?oid=' . $v['owner_id'] . '&id=' . $v['id'] . '&hash=' . $hash . '&hd=1';
 
-                        $image_html .= "\n<!-- wp:paragraph -->\n<p>";
-                        $image_html .= '🎬 <strong>' . esc_html( $title ) . '</strong>';
-                        if ( $duration ) {
-                            $image_html .= ' (' . esc_html( $duration ) . ')';
-                        }
-                        $image_html .= ' — <a href="' . esc_url( $v_url ) . '" target="_blank" rel="noopener">Смотреть на VK</a>';
-                        $image_html .= "</p>\n<!-- /wp:paragraph -->\n";
+                        $image_html .= "\n<!-- wp:html -->\n";
+                        $image_html .= '<div class="vk-video-wrapper" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;margin:1.5rem 0;">';
+                        $image_html .= '<iframe src="' . esc_url( $embed ) . '" style="position:absolute;top:0;left:0;width:100%;height:100%;"';
+                        $image_html .= ' allow="autoplay;encrypted-media;fullscreen;picture-in-picture" frameborder="0" allowfullscreen loading="lazy"></iframe>';
+                        $image_html .= '</div>';
+                        $image_html .= "\n<!-- /wp:html -->\n";
                     }
                 }
             }
