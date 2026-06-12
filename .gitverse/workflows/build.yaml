@@ -16,29 +16,29 @@ jobs:
       - name: Create release package
         run: |
           VERSION=$(grep -m1 '^Version:' style.css | cut -d: -f2 | tr -d ' ')
-          mkdir -p dist/scam-dev
-          cp -r . dist/scam-dev/
-          cd dist/scam-dev
-          rm -rf node_modules .git .gitverse vendor plugins wp-content \
-            Makefile docker-compose.yml .dockerignore \
-            composer.* postcss.config.js webpack.config.js \
-            package.json package-lock.json \
-            .gitignore .eslintrc.json .config.json .env \
-            inc/search-bar.php \
-            start.sh PROJECT.md project-info.sh \
-            assets/js/main.js assets/js/app.js \
-            assets/js/components assets/scss *.zip
-          mkdir -p assets/css assets/js
-          mv build/*.css assets/css/
-          mv build/app.js assets/js/
-          rm -rf build
-          find . -type d -exec chmod 755 {} \;
-          find . -type f -exec chmod 644 {} \;
-          cd ..
-          zip -r ../scam-dev-${VERSION}.zip scam-dev/ > /dev/null
+          rsync -a --exclude='node_modules' --exclude='.git' --exclude='.gitverse' \
+            --exclude='vendor' --exclude='plugins' --exclude='wp-content' \
+            --exclude='Makefile' --exclude='docker-compose.yml' \
+            --exclude='composer.*' --exclude='postcss.config.js' \
+            --exclude='webpack.config.js' --exclude='package.json' \
+            --exclude='package-lock.json' --exclude='.gitignore' \
+            --exclude='.eslintrc.json' --exclude='.config.json' --exclude='.env' \
+            --exclude='.dockerignore' --exclude='inc/search-bar.php' \
+            --exclude='start.sh' --exclude='PROJECT.md' --exclude='project-info.sh' \
+            --exclude='assets/js/main.js' --exclude='assets/js/app.js' \
+            --exclude='assets/js/components' --exclude='assets/scss' \
+            --exclude='*.zip' . /tmp/scam-dev/
+          mkdir -p /tmp/scam-dev/assets/css /tmp/scam-dev/assets/js
+          mv build/*.css /tmp/scam-dev/assets/css/
+          mv build/app.js /tmp/scam-dev/assets/js/
+          rm -rf /tmp/scam-dev/build
+          find /tmp/scam-dev -type d -exec chmod 755 {} \;
+          find /tmp/scam-dev -type f -exec chmod 644 {} \;
+          cd /tmp && zip -r ${GITHUB_WORKSPACE}/scam-dev-${VERSION}.zip scam-dev/ > /dev/null
+          rm -rf /tmp/scam-dev
           echo "VERSION=${VERSION}" >> $GITVERSE_ENV
 
       - uses: actions/upload-artifact@v4
         with:
           name: scam-dev-${{ env.VERSION }}
-          path: dist/scam-dev-*.zip
+          path: scam-dev-*.zip
