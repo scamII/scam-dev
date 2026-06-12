@@ -1,0 +1,11 @@
+node_modules/
+vendor/
+build/
+*.zip
+.env
+.config.json
+wp-content/
+plugins/
+.DS_Store
+project-info.sh
+start.sh

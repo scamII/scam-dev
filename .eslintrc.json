@@ -1,0 +1,7 @@
+{
+    "extends": ["@wordpress/eslint-plugin/recommended"],
+    "env": { "browser": true },
+    "rules": {
+        "no-undef": "warn"
+    }
+}
