@@ -51,7 +51,8 @@ class Scam_Dev_Matrix_Stats_Widget extends WP_Widget {
 
     private function fetch( $endpoint, $token ) {
         if ( ! $token ) return false;
-        $response = wp_remote_get( 'https://your-matrix.domain/_synapse/admin/v1/' . $endpoint, array(
+        $home = defined( 'MATRIX_HOMESERVER_URL' ) ? MATRIX_HOMESERVER_URL : 'https://your-matrix.domain';
+        $response = wp_remote_get( $home . '/_synapse/admin/v1/' . $endpoint, array(
             'headers' => array( 'Authorization' => 'Bearer ' . $token ),
             'timeout' => 8,
         ) );

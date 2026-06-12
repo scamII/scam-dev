@@ -24,7 +24,7 @@ prod: build
 	mkdir -p /tmp/scam-dev-dist/scam-dev && \
 	cp -r . /tmp/scam-dev-dist/scam-dev/ && \
 	cd /tmp/scam-dev-dist/scam-dev && \
-	rm -rf node_modules .git vendor plugins wp-content \
+	rm -rf node_modules .git .gitverse vendor plugins wp-content \
 		Makefile docker-compose.yml .dockerignore \
 		composer.* postcss.config.js webpack.config.js \
 		package.json package-lock.json \
@@ -47,12 +47,21 @@ prod: build
 
 deploy: prod
 	@VERSION=$$(grep -m1 '^Version:' style.css | cut -d: -f2 | tr -d ' '); \
-	scp scam-dev-$$VERSION.zip root@YOUR_SERVER_IP:/var/www/html/scam-dev-$$VERSION.zip && \
-	scp scam-dev-$$VERSION.zip root@YOUR_SERVER_IP:/var/www/html/scam-dev-latest.zip && \
-	echo "{\"version\":\"$$VERSION\",\"download_url\":\"https://your-domain.ru/scam-dev-$$VERSION.zip\",\"requires\":\"6.5\",\"requires_php\":\"8.0\"}" | ssh root@YOUR_SERVER_IP "cat > /var/www/html/theme-update.json" && \
-	echo "Deployed v$$VERSION to your-domain.ru"
+	HOST=$${DEPLOY_HOST:-$$(grep DEPLOY_HOST .env 2>/dev/null | cut -d= -f2)}; \
+	USER=$${DEPLOY_USER:-$$(grep DEPLOY_USER .env 2>/dev/null | cut -d= -f2)}; \
+	DOMAIN=$${SITE_DOMAIN:-$$(grep SITE_DOMAIN .env 2>/dev/null | cut -d= -f2)}; \
+	if [ -z "$$HOST" ]; then echo "Set DEPLOY_HOST in .env file"; exit 1; fi; \
+	scp scam-dev-$$VERSION.zip $$USER@$$HOST:/var/www/html/scam-dev-$$VERSION.zip && \
+	scp scam-dev-$$VERSION.zip $$USER@$$HOST:/var/www/html/scam-dev-latest.zip && \
+	echo "{\"version\":\"$$VERSION\",\"download_url\":\"https://$$DOMAIN/scam-dev-$$VERSION.zip\",\"requires\":\"6.5\",\"requires_php\":\"8.0\"}" | ssh $$USER@$$HOST "cat > /var/www/html/theme-update.json" && \
+	echo "Deployed v$$VERSION to $$DOMAIN"
 
 all: deploy plugin
+
+plugin:
+	rm -f scam-dev-gallery.zip
+	cd plugins && zip -r ../scam-dev-gallery.zip scam-dev-gallery/
+	@echo "Ready: scam-dev-gallery.zip ($$(du -h scam-dev-gallery.zip | cut -f1))"
 
 clean:
 	rm -rf build node_modules scam-dev-*.zip scam-dev-gallery.zip
