@@ -92,3 +92,10 @@ add_filter(
 	10,
 	2
 );
+
+function scam_dev_wp70_fix() {
+	if ( is_admin() ) {
+		wp_add_inline_script( 'wp-html-entities', 'window.wp=window.wp||{};window.wp.htmlEntities=window.wp.htmlEntities||{};if(!window.wp.htmlEntities.decodeEntities){window.wp.htmlEntities.decodeEntities=function(t){var e=document.createElement("textarea");e.innerHTML=t;return e.value}}' );
+	}
+}
+add_action( 'admin_enqueue_scripts', 'scam_dev_wp70_fix' );
