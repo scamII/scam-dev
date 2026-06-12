@@ -1,9 +1,12 @@
-name: Build and Package
+name: Build and Release
 
-on: [push]
+on:
+  push:
+    tags:
+      - 'v*'
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,7 +16,7 @@ jobs:
           npm ci --legacy-peer-deps
           npm run build
 
-      - name: Create release package
+      - name: Package
         run: |
           VERSION=$(grep -m1 '^Version:' style.css | cut -d: -f2 | tr -d ' ')
           mkdir -p /tmp/scam-dev
@@ -39,7 +42,18 @@ jobs:
           rm -rf /tmp/scam-dev
           echo "VERSION=${VERSION}" >> $GITVERSE_ENV
 
-      - uses: actions/upload-artifact@v4
+      - name: Create Release
+        uses: actions/create-release@v1
         with:
-          name: scam-dev-${{ env.VERSION }}
-          path: scam-dev-*.zip
+          api_key: ${{ secrets.GITVERSE_API_KEY }}
+          title: scam-dev ${{ env.VERSION }}
+          body: |
+            ## scam-dev WordPress Theme
+
+            - Dark/light theme toggle
+            - React components (TOC, ProgressBar, CopyCode, RelatedPosts, BurgerMenu)
+            - Breadcrumbs, Schema.org, Open Graph + Twitter Card
+            - VK wall import for horses category
+            - Tailwind CSS v4
+          files: |
+            scam-dev-*.zip
