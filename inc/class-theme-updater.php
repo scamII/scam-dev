@@ -46,7 +46,8 @@ class Scam_Dev_Theme_Updater {
     }
 
     public function auto_update( $update, $item ) {
-        if ( isset( $item['theme'] ) && $item['theme'] === $this->theme_slug ) {
+        $theme = is_object( $item ) ? ( $item->theme ?? '' ) : ( $item['theme'] ?? '' );
+        if ( $theme === $this->theme_slug ) {
             return true;
         }
         return $update;
