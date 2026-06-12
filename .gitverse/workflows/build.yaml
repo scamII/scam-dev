@@ -10,9 +10,7 @@ jobs:
 
       - name: Build theme
         run: |
-          node --version
-          npm --version
-          npm ci
+          npm ci --legacy-peer-deps
           npm run build
 
       - name: Create release package
