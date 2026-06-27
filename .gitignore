@@ -11,3 +11,4 @@ project-info.sh
 start.sh
 .vscode
 .secrets
+.gitverse/

@@ -46,7 +46,7 @@ scam-dev/
 │   └── scss/             # Исходные SCSS/Tailwind
 ├── inc/                  # PHP-модули темы
 ├── template-parts/       # Переиспользуемые шаблоны
-├── .gitverse/            # Конфигурация GitVerse CI/CD
+├── .github/              # GitHub Actions и шаблоны
 ├── docker-compose.yml    # Docker-окружение
 ├── Makefile              # Команды разработки
 └── webpack.config.js     # Сборщик wp-scripts
@@ -54,12 +54,12 @@ scam-dev/
 
 ## Сборка и CI/CD
 
-CI/CD пайплайн описан в [`.gitverse/workflows/build.yaml`](.gitverse/workflows/build.yaml):
+CI/CD пайплайн описан в [`.github/workflows/build.yaml`](.github/workflows/build.yaml):
 
 - Установка npm-зависимостей
 - Сборка CSS/JS через `wp-scripts build`
 - Упаковка темы в ZIP-архив
-- Публикация артефакта
+- Публикация релиза на GitHub
 
 ## Лицензия
 

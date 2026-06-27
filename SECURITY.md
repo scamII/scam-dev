@@ -8,7 +8,7 @@
 
 Вместо этого свяжитесь с нами приватно через:
 - Email: укажите в профиле автора темы
-- Приватный issue: используйте функцию конфиденциальных issue, если она доступна на платформе
+- Приватный отчёт об уязвимости (Security Advisory) на GitHub: [github.com/scamii/scam-dev/security/advisories](https://github.com/scamii/scam-dev/security/advisories)
 
 ## Поддерживаемые версии
 

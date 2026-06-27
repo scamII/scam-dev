@@ -6,7 +6,7 @@
 
 ### Сообщить об ошибке
 
-1. Проверьте, нет ли уже похожей задачи в [Issues](https://gitverse.ru/scamii/scam-dev/issues)
+1. Проверьте, нет ли уже похожей задачи в [Issues](https://github.com/scamii/scam-dev/issues)
 2. Создайте новый issue с чётким описанием:
    - Шаги для воспроизведения
    - Ожидаемое поведение
@@ -31,7 +31,7 @@
    ```
 5. Закоммитьте: `git commit -m "feat: описание"`
 6. Запушьте: `git push origin feature/название-фичи`
-7. Создайте Pull Request в ветку `main`
+7. Создайте Pull Request на GitHub в ветку `main`
 
 ## Соглашение о коммитах
 
