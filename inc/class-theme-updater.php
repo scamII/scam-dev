@@ -7,10 +7,10 @@ class Scam_Dev_Theme_Updater {
 	private $update_url;
 
 	public function __construct() {
-		$theme                = wp_get_theme();
-		$this->theme_slug     = $theme->get_template();
-		$this->theme_version  = $theme->get( 'Version' );
-		$this->update_url     = 'https://scam-dev.ru/theme-update.json';
+		$theme               = wp_get_theme();
+		$this->theme_slug    = $theme->get_template();
+		$this->theme_version = $theme->get( 'Version' );
+		$this->update_url    = 'https://scam-dev.ru/theme-update.json';
 
 		add_filter( 'pre_set_site_transient_update_themes', array( $this, 'check_update' ) );
 		add_filter( 'auto_update_theme', array( $this, 'auto_update' ), 10, 2 );

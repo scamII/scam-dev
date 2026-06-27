@@ -1,7 +1,7 @@
 <?php
 
 function scam_dev_breadcrumbs() {
-	$sep = ' <span class="mx-2 text-slate-500/40">/</span> ';
+	$sep  = ' <span class="mx-2 text-slate-500/40">/</span> ';
 	$home = '<a href="' . esc_url( home_url( '/' ) ) . '" class="text-gray-500 hover:text-coral-400 transition-colors">' . esc_html__( 'Главная', 'scam-dev' ) . '</a>';
 
 	if ( is_front_page() ) {

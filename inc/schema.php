@@ -13,24 +13,24 @@ function scam_dev_schema_jsonld() {
 	$featured_img = has_post_thumbnail() ? get_the_post_thumbnail_url( $post, 'large' ) : '';
 
 	$schema = array(
-		'@context'      => 'https://schema.org',
-		'@type'         => 'BlogPosting',
+		'@context'         => 'https://schema.org',
+		'@type'            => 'BlogPosting',
 		'mainEntityOfPage' => get_permalink(),
-		'headline'      => get_the_title(),
-		'datePublished' => get_the_date( 'c' ),
-		'dateModified'  => get_the_modified_date( 'c' ),
-		'author'        => array(
+		'headline'         => get_the_title(),
+		'datePublished'    => get_the_date( 'c' ),
+		'dateModified'     => get_the_modified_date( 'c' ),
+		'author'           => array(
 			'@type' => 'Person',
 			'name'  => $author_name,
 			'url'   => $author_url,
 		),
-		'publisher'     => array(
+		'publisher'        => array(
 			'@type' => 'Organization',
 			'name'  => get_bloginfo( 'name' ),
 			'url'   => home_url(),
 		),
-		'description'   => wp_strip_all_tags( get_the_excerpt() ),
-		'url'           => get_permalink(),
+		'description'      => wp_strip_all_tags( get_the_excerpt() ),
+		'url'              => get_permalink(),
 	);
 
 	if ( $cat_name ) {
@@ -42,8 +42,8 @@ function scam_dev_schema_jsonld() {
 	}
 
 	if ( has_tag() ) {
-		$tags        = get_the_tags();
-		$tag_names   = wp_list_pluck( $tags, 'name' );
+		$tags               = get_the_tags();
+		$tag_names          = wp_list_pluck( $tags, 'name' );
 		$schema['keywords'] = implode( ', ', $tag_names );
 	}
 

@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_filter(
 	'upload_mimes',
 	function ( $mimes ) {
-    if ( current_user_can( 'upload_files' ) && current_user_can( 'unfiltered_html' ) ) {
+		if ( current_user_can( 'upload_files' ) && current_user_can( 'unfiltered_html' ) ) {
 			$mimes['svg'] = 'image/svg+xml';
 		}
 		return $mimes;
@@ -23,13 +23,13 @@ add_filter(
 			return $file;
 		}
 
-    $svg = scam_dev_safe_file_read( $file['tmp_name'] );
+		$svg = scam_dev_safe_file_read( $file['tmp_name'] );
 		if ( false === $svg ) {
 			$file['error'] = __( 'Failed to read SVG file.', 'scam-dev' );
 			return $file;
 		}
 
-		$svg = scam_dev_sanitize_svg( $svg );
+		$svg     = scam_dev_sanitize_svg( $svg );
 		$cleaned = trim( wp_strip_all_tags( $svg, true ) );
 		if ( empty( $cleaned ) ) {
 			$file['error'] = __( 'SVG file appears to be empty or invalid.', 'scam-dev' );
@@ -65,12 +65,12 @@ add_filter(
 // Sanitize SVG markup - allow only safe elements and attributes
 
 function scam_dev_safe_file_read( $path ) {
-    global $wp_filesystem;
-    if ( empty( $wp_filesystem ) ) {
-        require_once ABSPATH . "/wp-admin/includes/file.php";
-        WP_Filesystem();
-    }
-    return $wp_filesystem->get_contents( $path );
+	global $wp_filesystem;
+	if ( empty( $wp_filesystem ) ) {
+		require_once ABSPATH . '/wp-admin/includes/file.php';
+		WP_Filesystem();
+	}
+	return $wp_filesystem->get_contents( $path );
 }
 
 function scam_dev_sanitize_svg( $svg ) {
@@ -245,9 +245,9 @@ add_action(
 
 
 function scam_dev_hero_svg_url() {
-    $id = get_theme_mod( "hero_svg_id", 0 );
-    if ( $id ) {
-        return wp_get_attachment_url( $id );
-    }
-    return "";
+	$id = get_theme_mod( 'hero_svg_id', 0 );
+	if ( $id ) {
+		return wp_get_attachment_url( $id );
+	}
+	return '';
 }

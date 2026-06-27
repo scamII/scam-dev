@@ -26,11 +26,13 @@ $cat_link = $cat ? get_category_link( $cat ) : '#';
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<?php scam_dev_breadcrumbs(); ?>
 		<?php
-		$query = new WP_Query( array(
-			'category_name'  => $cat_slug,
-			'posts_per_page' => 12,
-			'paged'          => get_query_var( 'paged' ) ?: 1,
-		) );
+		$query = new WP_Query(
+			array(
+				'category_name'  => $cat_slug,
+				'posts_per_page' => 12,
+				'paged'          => get_query_var( 'paged' ) ?: 1,
+			)
+		);
 
 		if ( $query->have_posts() ) :
 			?>
@@ -76,10 +78,12 @@ $cat_link = $cat ? get_category_link( $cat ) : '#';
 			</div>
 			<div class="mt-12">
 				<?php
-				echo paginate_links( array(
-					'total'   => $query->max_num_pages,
-					'current' => max( 1, get_query_var( 'paged' ) ),
-				) );
+				echo paginate_links(
+					array(
+						'total'   => $query->max_num_pages,
+						'current' => max( 1, get_query_var( 'paged' ) ),
+					)
+				);
 				?>
 			</div>
 			<?php

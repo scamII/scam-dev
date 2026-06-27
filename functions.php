@@ -15,6 +15,7 @@ require get_template_directory() . '/inc/customizer.php';
 require get_template_directory() . '/inc/svg.php';
 require get_template_directory() . '/inc/widget-matrix-stats.php';
 require get_template_directory() . '/inc/widget-donate.php';
+require get_template_directory() . '/inc/matrix-register.php';
 require get_template_directory() . '/inc/highlightjs.php';
 require get_template_directory() . '/inc/breadcrumbs.php';
 require get_template_directory() . '/inc/schema.php';

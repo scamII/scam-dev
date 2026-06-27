@@ -10,7 +10,7 @@
     }
   },
   "scripts": {
-    "lint": "phpcs --standard=WordPress --extensions=php .",
-    "fix": "phpcbf --standard=WordPress --extensions=php ."
+    "lint": "phpcs",
+    "fix": "phpcbf"
   }
 }

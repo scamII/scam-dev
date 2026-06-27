@@ -43,7 +43,7 @@ function scam_dev_vk_import_page() {
 				$message = '<div class="notice notice-error"><p>' . esc_html( $result['error'] ) . '</p></div>';
 			} else {
 				$message = '<div class="notice notice-success"><p>' . sprintf(
-					esc_html__( 'Импортировано: %d, пропущено: %d, ошибок: %d', 'scam-dev' ),
+					esc_html__( 'Импортировано: %1$d, пропущено: %2$d, ошибок: %3$d', 'scam-dev' ),
 					isset( $result['imported'] ) ? (int) $result['imported'] : 0,
 					isset( $result['skipped'] ) ? (int) $result['skipped'] : 0,
 					isset( $result['errors'] ) ? count( $result['errors'] ) : 0

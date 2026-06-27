@@ -375,6 +375,12 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 3px rgba(255,87,67,0.1);
 }
 
+/* Prevent global input rules from overriding utility padding on Matrix-register fields */
+.mx-input {
+  text-align: left;
+  direction: ltr;
+}
+
 button[type="submit"],
 input[type="submit"] {
   display: inline-flex;

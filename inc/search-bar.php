@@ -13,7 +13,7 @@
 					<div class="absolute right-0 top-1/2 -translate-y-1/2 overflow-hidden transition-all duration-300 ease-in-out"
 						id="hs-wrap"
 						style="max-width:0;opacity:0;">
-						<form role="search" method="get" action="<?php echo esc_url(home_url('/')); ?>" class="pl-2">
+						<form role="search" method="get" action="<?php echo esc_url( home_url( '/' ) ); ?>" class="pl-2">
 							<input type="search" name="s" id="hs-input"
 								class="w-full max-w-[200px] py-1.5 px-3 text-sm rounded-full transition-colors duration-300 focus:outline-none"
 								style="

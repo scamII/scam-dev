@@ -11,32 +11,47 @@ class Scam_Dev_VK_Import {
 	}
 
 	public function run( $count = 20, $offset = 0 ) {
-		$url = add_query_arg( array(
-			'owner_id'     => $this->owner_id,
-			'count'        => $count,
-			'offset'       => $offset,
-			'filter'       => 'owner',
-			'extended'     => 1,
-			'v'            => '5.199',
-			'access_token' => $this->token,
-		), 'https://api.vk.com/method/wall.get' );
+		$url = add_query_arg(
+			array(
+				'owner_id'     => $this->owner_id,
+				'count'        => $count,
+				'offset'       => $offset,
+				'filter'       => 'owner',
+				'extended'     => 1,
+				'v'            => '5.199',
+				'access_token' => $this->token,
+			),
+			'https://api.vk.com/method/wall.get'
+		);
 
 		$response = wp_remote_get( $url, array( 'timeout' => 30 ) );
 		if ( is_wp_error( $response ) ) {
-			return array( 'done' => false, 'error' => 'HTTP error' );
+			return array(
+				'done'  => false,
+				'error' => 'HTTP error',
+			);
 		}
 
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( ! is_array( $body ) ) {
-			return array( 'done' => false, 'error' => 'Invalid API response' );
+			return array(
+				'done'  => false,
+				'error' => 'Invalid API response',
+			);
 		}
 
 		if ( isset( $body['error']['error_msg'] ) ) {
-			return array( 'done' => false, 'error' => $body['error']['error_msg'] );
+			return array(
+				'done'  => false,
+				'error' => $body['error']['error_msg'],
+			);
 		}
 
 		if ( empty( $body['response']['items'] ) || ! is_array( $body['response']['items'] ) ) {
-			return array( 'done' => false, 'error' => 'Постов не найдено' );
+			return array(
+				'done'  => false,
+				'error' => 'Постов не найдено',
+			);
 		}
 
 		$items    = $body['response']['items'];
@@ -60,20 +75,22 @@ class Scam_Dev_VK_Import {
 			$text = preg_replace( '/\[(?:id|club)\d+\|([^\]]+)\]/u', '$1', $text );
 
 			if ( empty( $text ) ) {
-				$skipped++;
+				++$skipped;
 				continue;
 			}
 
-			$existing = get_posts( array(
-				'post_type'      => 'post',
-				'post_status'    => 'any',
-				'meta_key'       => '_vk_post_id',
-				'meta_value'     => $vk_id,
-				'posts_per_page' => 1,
-			) );
+			$existing = get_posts(
+				array(
+					'post_type'      => 'post',
+					'post_status'    => 'any',
+					'meta_key'       => '_vk_post_id',
+					'meta_value'     => $vk_id,
+					'posts_per_page' => 1,
+				)
+			);
 
 			if ( ! empty( $existing ) ) {
-				$skipped++;
+				++$skipped;
 				continue;
 			}
 
@@ -86,8 +103,8 @@ class Scam_Dev_VK_Import {
 						$largest  = $sizes[0];
 						$max_area = 0;
 						foreach ( $sizes as $sz ) {
-							$w   = isset( $sz['width'] ) ? (int) $sz['width'] : 0;
-							$h   = isset( $sz['height'] ) ? (int) $sz['height'] : 0;
+							$w    = isset( $sz['width'] ) ? (int) $sz['width'] : 0;
+							$h    = isset( $sz['height'] ) ? (int) $sz['height'] : 0;
 							$area = $w * $h;
 							if ( $area > $max_area ) {
 								$max_area = $area;
@@ -102,7 +119,7 @@ class Scam_Dev_VK_Import {
 								$featured_id = $thumb_id;
 							}
 							if ( $thumb_id ) {
-								$img_src = wp_get_attachment_url( $thumb_id );
+								$img_src     = wp_get_attachment_url( $thumb_id );
 								$image_html .= "\n<!-- wp:image -->\n<figure class=\"wp-block-image\"><img src=\"" . esc_url( $img_src ) . "\" alt=\"\"/></figure>\n<!-- /wp:image -->\n";
 							}
 						}
@@ -115,7 +132,7 @@ class Scam_Dev_VK_Import {
 						$hash = isset( $v['access_key'] ) ? rawurlencode( $v['access_key'] ) : '';
 
 						if ( $oid && $vid && $hash ) {
-							$embed = 'https://vk.com/video_ext.php?oid=' . $oid . '&id=' . $vid . '&hash=' . $hash . '&hd=1';
+							$embed       = 'https://vk.com/video_ext.php?oid=' . $oid . '&id=' . $vid . '&hash=' . $hash . '&hd=1';
 							$image_html .= "\n<!-- wp:html -->\n";
 							$image_html .= '<div class="vk-video-wrapper" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;margin:1.5rem 0;">';
 							$image_html .= '<iframe src="' . esc_url( $embed ) . '" style="position:absolute;top:0;left:0;width:100%;height:100%;"';
@@ -127,9 +144,9 @@ class Scam_Dev_VK_Import {
 				}
 			}
 
-			$lines   = explode( "\n", $text );
-			$title   = wp_trim_words( $lines[0], 12, '' );
-			$slug    = sanitize_title( $title );
+			$lines = explode( "\n", $text );
+			$title = wp_trim_words( $lines[0], 12, '' );
+			$slug  = sanitize_title( $title );
 			if ( mb_strlen( $slug ) > 80 ) {
 				$slug = mb_substr( $slug, 0, 80 );
 			}
@@ -139,7 +156,7 @@ class Scam_Dev_VK_Import {
 			foreach ( $paragraphs as $p ) {
 				$p = trim( $p );
 				if ( '' !== $p ) {
-					$blocks .= "<!-- wp:paragraph --><p>" . esc_html( $p ) . "</p><!-- /wp:paragraph -->\n";
+					$blocks .= '<!-- wp:paragraph --><p>' . esc_html( $p ) . "</p><!-- /wp:paragraph -->\n";
 				}
 			}
 			$blocks .= $image_html;
@@ -164,7 +181,7 @@ class Scam_Dev_VK_Import {
 				set_post_thumbnail( $post_id, $featured_id );
 			}
 
-			$imported++;
+			++$imported;
 		}
 
 		return array(

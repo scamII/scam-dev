@@ -72,7 +72,10 @@ function scam_dev_get_image_size( $url ) {
 	if ( file_exists( $path ) ) {
 		$size = getimagesize( $path );
 		if ( $size ) {
-			return array( 'width' => $size[0], 'height' => $size[1] );
+			return array(
+				'width'  => $size[0],
+				'height' => $size[1],
+			);
 		}
 	}
 	return false;
