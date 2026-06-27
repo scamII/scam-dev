@@ -1,21 +1,36 @@
-name: Build and Package
+name: Build, Package and Release
 
-on: [push]
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.package.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
       - name: Build theme
         run: |
           npm ci --legacy-peer-deps
           npm run build
 
-      - name: Package
+      - name: Package theme
+        id: package
         run: |
           VERSION=$(grep -m1 '^Version:' style.css | cut -d: -f2 | tr -d ' ')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
           mkdir -p /tmp/scam-dev
           cp -r . /tmp/scam-dev/
           cd /tmp/scam-dev
@@ -37,9 +52,67 @@ jobs:
           cd /tmp
           zip -r ${GITHUB_WORKSPACE}/scam-dev-${VERSION}.zip scam-dev/ > /dev/null
           rm -rf /tmp/scam-dev
-          echo "VERSION=${VERSION}" >> $GITVERSE_ENV
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: scam-dev-${{ env.VERSION }}
+          name: scam-dev-${{ steps.package.outputs.version }}
           path: scam-dev-*.zip
+          retention-days: 30
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: scam-dev-${{ needs.build.outputs.version }}
+          path: ./dist
+
+      - name: Get version info
+        id: version
+        run: |
+          VERSION="${{ needs.build.outputs.version }}"
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "TAG=${TAG}" >> $GITHUB_ENV
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges > CHANGELOG_BODY.md
+          else
+            git log --pretty=format:"- %s" --no-merges > CHANGELOG_BODY.md
+          fi
+          echo "Changelog:"
+          cat CHANGELOG_BODY.md
+
+      - name: Read changelog into env
+        run: |
+          {
+            echo 'CHANGELOG<<EOF'
+            cat CHANGELOG_BODY.md
+            echo 'EOF'
+          } >> $GITHUB_ENV
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        with:
+          api_key: ${{ secrets.GITVERSE_API_KEY }}
+          title: "Scam Dev v${{ steps.version.outputs.version }}"
+          body: |
+            ## Изменения в v${{ steps.version.outputs.version }}
+
+            ${{ env.CHANGELOG }}
+          files: ./dist/scam-dev-*.zip
+          draft: false
+          pre_release: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}

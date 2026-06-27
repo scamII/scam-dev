@@ -4,7 +4,11 @@
 @source "../**/*.php";
 
 @layer base {
-  html { scroll-behavior: smooth; }
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    max-width: 100%;
+  }
 
   body {
     @apply antialiased;
@@ -12,6 +16,12 @@
     color: var(--color-text);
     font-family: system-ui, -apple-system, sans-serif;
     transition: var(--transition-theme);
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  iframe, embed, object, video {
+    max-width: 100%;
   }
 
   ::selection {
@@ -448,7 +458,7 @@ input[type="submit"] {
 
 .aligncenter { margin-left: auto; margin-right: auto; }
 .alignwide { max-width: 80rem; margin-left: auto; margin-right: auto; }
-.alignfull { max-width: none; width: 100vw; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; }
+.alignfull { max-width: 100vw; width: 100vw; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; }
 
 .wp-block-image img { height: auto; max-width: 100%; }
 .wp-block-button__link {

@@ -9,3 +9,4 @@ plugins/
 .DS_Store
 project-info.sh
 start.sh
+.vscode
