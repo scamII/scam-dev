@@ -10,3 +10,4 @@ plugins/
 project-info.sh
 start.sh
 .vscode
+.secrets
