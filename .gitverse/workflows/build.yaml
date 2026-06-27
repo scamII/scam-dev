@@ -105,14 +105,14 @@ jobs:
           } >> $GITHUB_ENV
 
       - name: Create Release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          api_key: ${{ secrets.RELEASE_API_KEY }}
-          title: "Scam Dev v${{ steps.version.outputs.version }}"
+          token: ${{ secrets.RELEASE_API_KEY }}
+          name: "Scam Dev v${{ steps.version.outputs.version }}"
           body: |
             ## Изменения в v${{ steps.version.outputs.version }}
 
             ${{ env.CHANGELOG }}
           files: ./dist/scam-dev-*.zip
           draft: false
-          pre_release: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
+          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
