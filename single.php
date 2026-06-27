@@ -169,7 +169,7 @@ while ( have_posts() ) :
                         </div>
                     <?php endif; ?>
             </div>
-            <?php if ( has_post_thumbnail() ) : ?></div><?php endif; ?>
+            </div>
         </div>
 
         <div id="related-posts-root" data-post-id="<?php the_ID(); ?>"></div>
