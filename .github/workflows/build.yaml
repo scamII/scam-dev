@@ -101,10 +101,14 @@ jobs:
 
       - name: Read changelog into env
         run: |
+          if [ ! -s CHANGELOG_BODY.md ]; then
+            echo "- Initial release" > CHANGELOG_BODY.md
+          fi
           {
-            echo 'CHANGELOG<<EOF'
+            echo 'CHANGELOG<<CHANGELOG_EOF'
             cat CHANGELOG_BODY.md
-            echo 'EOF'
+            echo ''
+            echo 'CHANGELOG_EOF'
           } >> $GITHUB_ENV
 
       - name: Create Release
