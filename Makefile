@@ -51,13 +51,29 @@ deploy: prod
 	USER=$${DEPLOY_USER:-$$(grep DEPLOY_USER .env 2>/dev/null | cut -d= -f2)}; \
 	DOMAIN=$${SITE_DOMAIN:-$$(grep SITE_DOMAIN .env 2>/dev/null | cut -d= -f2)}; \
 	if [ -z "$$HOST" ]; then echo "Set DEPLOY_HOST in .env file"; exit 1; fi; \
+	echo "=== Deploying theme v$$VERSION ===" && \
 	scp scam-dev-$$VERSION.zip $$USER@$$HOST:/var/www/html/scam-dev-$$VERSION.zip && \
 	scp scam-dev-$$VERSION.zip $$USER@$$HOST:/var/www/html/scam-dev-latest.zip && \
 	HASH=$$(sha256sum scam-dev-$$VERSION.zip | cut -d' ' -f1); \
 	echo "{\"version\":\"$$VERSION\",\"download_url\":\"https://$$DOMAIN/scam-dev-$$VERSION.zip\",\"sha256\":\"$$HASH\",\"requires\":\"6.5\",\"requires_php\":\"8.0\"}" | ssh $$USER@$$HOST "cat > /var/www/html/theme-update.json" && \
-	echo "Deployed v$$VERSION to $$DOMAIN (sha256: $$HASH)"
+	echo "Theme deployed (sha256: $$HASH)" && \
+	echo "=== Deploying plugins ===" && \
+	for dir in plugins/*/; do \
+		name=$$(basename $$dir); \
+		echo "Packing $$name..."; \
+		cd $$dir && zip -r ../../$$name.zip . > /dev/null && cd ../..; \
+	done && \
+	for zip in scam-dev-donate-widget.zip scam-dev-gallery.zip scam-dev-matrix.zip scam-dev-seo.zip scam-dev-svg.zip scam-dev-vk-import.zip; do \
+		if [ -f "$$zip" ]; then \
+			echo "Uploading $$zip..."; \
+			scp $$zip $$USER@$$HOST:/var/www/html/wp-content/plugins/; \
+		fi; \
+	done && \
+	ssh $$USER@$$HOST "cd /var/www/html/wp-content/plugins && for z in scam-dev-*.zip; do [ -f \"\$$z\" ] && unzip -o \"\$$z\" -d \"\$${z%.zip}\" && echo \"Extracted \$$z\"; done && rm -f scam-dev-*.zip" && \
+	echo "Plugins deployed" && \
+	echo "=== Done: v$$VERSION ==="
 
-all: deploy plugin
+all: deploy
 
 plugin:
 	@rm -f scam-dev-*.zip
