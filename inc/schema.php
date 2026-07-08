@@ -1,4 +1,6 @@
 <?php
+if ( ! defined( "ABSPATH" ) ) { exit; }
+
 
 function scam_dev_schema_jsonld() {
 	if ( ! is_single() ) {

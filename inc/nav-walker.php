@@ -45,7 +45,8 @@ class Scam_Dev_Nav_Walker extends Walker_Nav_Menu {
 		}
 
 		$title = apply_filters( 'the_title', $data_object->title, $data_object->ID );
-		$title = $has_kids ? $title . ' <svg class="inline-block w-3 h-3 ml-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>' : $title;
+		$svg   = ' <svg class="inline-block w-3 h-3 ml-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>';
+		$title = $has_kids ? esc_html( $title ) . $svg : esc_html( $title );
 
 		$output .= '<a' . $attributes . '>' . $title . '</a>';
 	}

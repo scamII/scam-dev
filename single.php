@@ -174,7 +174,6 @@ while (have_posts()) :
 			</div>
 		</div>
 
-		<div id="related-posts-root" data-post-id="<?php the_ID(); ?>"></div>
 	</article>
 
 <?php

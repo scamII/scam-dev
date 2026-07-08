@@ -155,13 +155,23 @@ class Scam_Dev_Matrix_Register {
 			wp_die( 'Ошибка проверки безопасности. Пожалуйста, обновите страницу и попробуйте снова.' );
 		}
 
-		// Rate limiting: не более 3 попыток за 10 минут с одного IP.
 		$ip       = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 		$rate_key = 'matrix_reg_rate_' . md5( $ip );
 		$attempts = (int) get_transient( $rate_key );
 
-		if ( $attempts >= 3 ) {
-			$form_errors = array( 'Слишком много попыток регистрации. Пожалуйста, подождите 10 минут.' );
+		// Лимит любых попыток (успешных и нет) — 5 за 15 минут.
+		if ( $attempts >= 5 ) {
+			$form_errors = array( 'Слишком много попыток регистрации. Пожалуйста, подождите 15 минут.' );
+			set_transient( 'matrix_register_errors', $form_errors, 60 );
+			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
+			exit;
+		}
+
+		// Лимит успешных регистраций — 2 за 24 часа с одного IP.
+		$success_key = 'matrix_reg_success_' . md5( $ip );
+		$successes   = (int) get_transient( $success_key );
+		if ( $successes >= 2 ) {
+			$form_errors = array( 'Лимит регистраций для вашего IP исчерпан. Попробуйте позже или обратитесь к администратору.' );
 			set_transient( 'matrix_register_errors', $form_errors, 60 );
 			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 			exit;
@@ -177,12 +187,20 @@ class Scam_Dev_Matrix_Register {
 			$form_errors[] = 'Имя пользователя должно быть не менее 3 символов.';
 		}
 
+		if ( strlen( $username ) > 64 ) {
+			$form_errors[] = 'Имя пользователя слишком длинное.';
+		}
+
 		if ( ! preg_match( '/^[a-z0-9._\-]+$/i', $username ) ) {
 			$form_errors[] = 'Имя пользователя может содержать только латинские буквы, цифры, точки, дефисы и подчёркивания.';
 		}
 
 		if ( strlen( $password ) < 8 ) {
 			$form_errors[] = 'Пароль должен быть не менее 8 символов.';
+		}
+
+		if ( strlen( $password ) > 128 ) {
+			$form_errors[] = 'Пароль слишком длинный.';
 		}
 
 		if ( $password !== $password_confirm ) {
@@ -196,24 +214,25 @@ class Scam_Dev_Matrix_Register {
 		if ( ! empty( $form_errors ) ) {
 			set_transient( 'matrix_register_errors', $form_errors, 60 );
 			set_transient( 'matrix_register_username', $username, 60 );
-			// Увеличиваем счётчик попыток.
-			set_transient( $rate_key, $attempts + 1, 600 );
+			set_transient( $rate_key, $attempts + 1, 15 * MINUTE_IN_SECONDS );
 			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 			exit;
 		}
 
 		$result = self::create_matrix_user( $username, $password );
 
+		// Увеличиваем счётчик попыток при любом исходе.
+		set_transient( $rate_key, $attempts + 1, 15 * MINUTE_IN_SECONDS );
+
 		if ( is_wp_error( $result ) ) {
 			set_transient( 'matrix_register_errors', array( $result->get_error_message() ), 60 );
 			set_transient( 'matrix_register_username', $username, 60 );
-			set_transient( $rate_key, $attempts + 1, 600 );
 			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 			exit;
 		}
 
-		// Успешная регистрация — сбрасываем счётчик.
-		delete_transient( $rate_key );
+		// Успешная регистрация — не сбрасываем rate key, увеличиваем success counter.
+		set_transient( $success_key, $successes + 1, DAY_IN_SECONDS );
 		set_transient( 'matrix_register_success', true, 60 );
 		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 		exit;

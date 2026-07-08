@@ -1,4 +1,6 @@
 <?php
+if ( ! defined( "ABSPATH" ) ) { exit; }
+
 
 function scam_dev_meta_tags() {
 	echo '<meta name="description" content="' . esc_attr( scam_dev_get_description() ) . '">' . "\n";

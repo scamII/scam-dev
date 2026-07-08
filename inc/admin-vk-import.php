@@ -1,4 +1,6 @@
 <?php
+if ( ! defined( "ABSPATH" ) ) { exit; }
+
 
 function scam_dev_vk_import_admin() {
 	add_submenu_page(

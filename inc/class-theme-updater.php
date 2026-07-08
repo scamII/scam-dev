@@ -1,10 +1,17 @@
 <?php
+if ( ! defined( "ABSPATH" ) ) { exit; }
+
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 class Scam_Dev_Theme_Updater {
 
 	private $theme_slug;
 	private $theme_version;
 	private $update_url;
+	private $allowed_host = 'scam-dev.ru';
 
 	public function __construct() {
 		$theme               = wp_get_theme();
@@ -34,7 +41,12 @@ class Scam_Dev_Theme_Updater {
 		$version      = preg_replace( '/[^0-9.]/', '', $data['version'] );
 		$download_url = esc_url_raw( $data['download_url'] );
 
-		if ( ! $version || strpos( $download_url, 'https://' ) !== 0 ) {
+		if ( ! $version ) {
+			return $transient;
+		}
+
+		$host = wp_parse_url( $download_url, PHP_URL_HOST );
+		if ( $this->allowed_host !== $host || 'https' !== wp_parse_url( $download_url, PHP_URL_SCHEME ) ) {
 			return $transient;
 		}
 
@@ -53,10 +65,6 @@ class Scam_Dev_Theme_Updater {
 	}
 
 	public function auto_update( $update, $item ) {
-		$theme = is_object( $item ) ? ( $item->theme ?? '' ) : ( $item['theme'] ?? '' );
-		if ( $this->theme_slug === $theme ) {
-			return true;
-		}
 		return $update;
 	}
 }

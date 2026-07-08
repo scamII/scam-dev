@@ -5,8 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function scam_dev_scripts() {
-	$css_ver = filemtime( get_template_directory() . '/assets/css/style.css' );
-	$js_ver  = filemtime( get_template_directory() . '/assets/js/app.js' );
+	$css_path = get_template_directory() . '/assets/css/style.css';
+	$js_path  = get_template_directory() . '/assets/js/app.js';
+	$css_ver  = file_exists( $css_path ) ? filemtime( $css_path ) : SCAM_DEV_VERSION;
+	$js_ver   = file_exists( $js_path ) ? filemtime( $js_path ) : SCAM_DEV_VERSION;
 
 	wp_enqueue_style(
 		'scam-dev-style',

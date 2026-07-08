@@ -1,4 +1,6 @@
 <?php
+if ( ! defined( "ABSPATH" ) ) { exit; }
+
 
 class Scam_Dev_VK_Import {
 

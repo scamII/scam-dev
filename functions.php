@@ -36,7 +36,7 @@ function scam_dev_exclude_horses_from_blog( $query ) {
 }
 add_action( 'pre_get_posts', 'scam_dev_exclude_horses_from_blog' );
 
-function reading_time() {
+function scam_dev_reading_time() {
 	$content = get_post_field( 'post_content', get_the_ID() );
 	$words   = str_word_count( wp_strip_all_tags( $content ) );
 	$minutes = ceil( $words / 200 );

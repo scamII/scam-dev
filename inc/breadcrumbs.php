@@ -1,4 +1,6 @@
 <?php
+if ( ! defined( "ABSPATH" ) ) { exit; }
+
 
 function scam_dev_breadcrumbs() {
 	$sep  = ' <span class="mx-2 text-slate-500/40">/</span> ';
@@ -18,21 +20,21 @@ function scam_dev_breadcrumbs() {
 			echo '<a href="' . esc_url( get_category_link( $cats[0]->term_id ) ) . '" class="text-gray-500 hover:text-coral-400 transition-colors">' . esc_html( $cats[0]->name ) . '</a>';
 		}
 		echo $sep;
-		echo '<span class="text-gray-300">' . get_the_title() . '</span>';
+		echo '<span class="text-gray-300">' . esc_html( get_the_title() ) . '</span>';
 	} elseif ( is_page() ) {
 		echo $sep;
-		echo '<span class="text-gray-300">' . get_the_title() . '</span>';
+		echo '<span class="text-gray-300">' . esc_html( get_the_title() ) . '</span>';
 	} elseif ( is_category() || is_tag() || is_tax() ) {
 		echo $sep;
-		echo '<span class="text-gray-300">' . single_term_title( '', false ) . '</span>';
+		echo '<span class="text-gray-300">' . esc_html( single_term_title( '', false ) ) . '</span>';
 	} elseif ( is_search() ) {
 		echo $sep;
-		echo '<span class="text-gray-300">' . sprintf( esc_html__( 'Поиск: %s', 'scam-dev' ), get_search_query() ) . '</span>';
+		echo '<span class="text-gray-300">' . sprintf( esc_html__( 'Поиск: %s', 'scam-dev' ), esc_html( get_search_query() ) ) . '</span>';
 	} elseif ( is_archive() ) {
 		if ( is_year() ) {
-			echo $sep . '<span class="text-gray-300">' . get_the_date( 'Y' ) . '</span>';
+			echo $sep . '<span class="text-gray-300">' . esc_html( get_the_date( 'Y' ) ) . '</span>';
 		} elseif ( is_month() ) {
-			echo $sep . '<span class="text-gray-300">' . get_the_date( 'F Y' ) . '</span>';
+			echo $sep . '<span class="text-gray-300">' . esc_html( get_the_date( 'F Y' ) ) . '</span>';
 		} else {
 			echo $sep . '<span class="text-gray-300">' . esc_html__( 'Архивы', 'scam-dev' ) . '</span>';
 		}
