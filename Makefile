@@ -56,6 +56,7 @@ deploy: prod
 	scp scam-dev-$$VERSION.zip $$USER@$$HOST:/var/www/html/scam-dev-latest.zip && \
 	HASH=$$(sha256sum scam-dev-$$VERSION.zip | cut -d' ' -f1); \
 	echo "{\"version\":\"$$VERSION\",\"download_url\":\"https://$$DOMAIN/scam-dev-$$VERSION.zip\",\"sha256\":\"$$HASH\",\"requires\":\"6.5\",\"requires_php\":\"8.0\"}" | ssh $$USER@$$HOST "cat > /var/www/html/theme-update.json" && \
+	ssh $$USER@$$HOST "cd /var/www/html/wp-content/themes && rm -rf scam-dev && unzip -o /var/www/html/scam-dev-$$VERSION.zip && chown -R www-data:www-data scam-dev" && \
 	echo "Theme deployed (sha256: $$HASH)" && \
 	echo "=== Deploying plugins ===" && \
 	for dir in plugins/*/; do \
