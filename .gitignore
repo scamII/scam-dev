@@ -5,7 +5,6 @@ build/
 .env
 .config.json
 wp-content/
-plugins/
 .DS_Store
 project-info.sh
 start.sh

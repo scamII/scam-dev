@@ -1,0 +1,12 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "scamdev/gallery",
+    "title": "Галерея (Scam Dev)",
+    "category": "media",
+    "icon": "format-gallery",
+    "description": "Галерея изображений с сеткой и лайтбоксом.",
+    "supports": { "align": true },
+    "editorScript": "file:./block.js",
+    "render": "file:./render.php"
+}
