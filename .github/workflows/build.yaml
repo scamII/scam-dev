@@ -57,6 +57,18 @@ jobs:
           zip -r ${GITHUB_WORKSPACE}/scam-dev-${VERSION}.zip scam-dev/ > /dev/null
           rm -rf /tmp/scam-dev
 
+      - name: Package plugins
+        run: |
+          for plugin_dir in plugins/*/; do
+            plugin_name=$(basename "$plugin_dir")
+            echo "Packaging ${plugin_name}..."
+            cd "$plugin_dir"
+            zip -r ${GITHUB_WORKSPACE}/${plugin_name}.zip . > /dev/null
+            cd ${GITHUB_WORKSPACE}
+          done
+          echo "All packages:"
+          ls -lh ${GITHUB_WORKSPACE}/scam-dev-*.zip
+
       - name: Generate changelog
         id: changelog
         run: |

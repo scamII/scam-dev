@@ -60,9 +60,13 @@ deploy: prod
 all: deploy plugin
 
 plugin:
-	rm -f scam-dev-gallery.zip
-	cd plugins && zip -r ../scam-dev-gallery.zip scam-dev-gallery/
-	@echo "Ready: scam-dev-gallery.zip ($$(du -h scam-dev-gallery.zip | cut -f1))"
+	@rm -f scam-dev-*.zip
+	@for dir in plugins/*/; do \
+		name=$$(basename $$dir); \
+		echo "Packing $$name..."; \
+		cd $$dir && zip -r ../../$$name.zip . > /dev/null && cd ../..; \
+	done
+	@echo "Ready: $$(ls -1 scam-dev-*.zip | grep -v '[0-9]\.[0-9]' | tr '\n' ' ')"
 
 clean:
-	rm -rf build node_modules scam-dev-*.zip scam-dev-gallery.zip
+	rm -rf build node_modules scam-dev-*.zip
