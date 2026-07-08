@@ -53,8 +53,9 @@ deploy: prod
 	if [ -z "$$HOST" ]; then echo "Set DEPLOY_HOST in .env file"; exit 1; fi; \
 	scp scam-dev-$$VERSION.zip $$USER@$$HOST:/var/www/html/scam-dev-$$VERSION.zip && \
 	scp scam-dev-$$VERSION.zip $$USER@$$HOST:/var/www/html/scam-dev-latest.zip && \
-	echo "{\"version\":\"$$VERSION\",\"download_url\":\"https://$$DOMAIN/scam-dev-$$VERSION.zip\",\"requires\":\"6.5\",\"requires_php\":\"8.0\"}" | ssh $$USER@$$HOST "cat > /var/www/html/theme-update.json" && \
-	echo "Deployed v$$VERSION to $$DOMAIN"
+	HASH=$$(sha256sum scam-dev-$$VERSION.zip | cut -d' ' -f1); \
+	echo "{\"version\":\"$$VERSION\",\"download_url\":\"https://$$DOMAIN/scam-dev-$$VERSION.zip\",\"sha256\":\"$$HASH\",\"requires\":\"6.5\",\"requires_php\":\"8.0\"}" | ssh $$USER@$$HOST "cat > /var/www/html/theme-update.json" && \
+	echo "Deployed v$$VERSION to $$DOMAIN (sha256: $$HASH)"
 
 all: deploy plugin
 
