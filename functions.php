@@ -12,16 +12,9 @@ require get_template_directory() . '/inc/setup.php';
 require get_template_directory() . '/inc/nav-walker.php';
 require get_template_directory() . '/inc/enqueue.php';
 require get_template_directory() . '/inc/customizer.php';
-require get_template_directory() . '/inc/svg.php';
-require get_template_directory() . '/inc/widget-matrix-stats.php';
-require get_template_directory() . '/inc/widget-donate.php';
-require get_template_directory() . '/inc/matrix-register.php';
+require get_template_directory() . '/inc/hero.php';
 require get_template_directory() . '/inc/highlightjs.php';
 require get_template_directory() . '/inc/breadcrumbs.php';
-require get_template_directory() . '/inc/schema.php';
-require get_template_directory() . '/inc/seo.php';
-require get_template_directory() . '/inc/admin-vk-import.php';
-require get_template_directory() . '/inc/class-vk-import.php';
 require get_template_directory() . '/inc/class-theme-updater.php';
 
 function scam_dev_exclude_horses_from_blog( $query ) {
