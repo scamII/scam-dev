@@ -8,7 +8,7 @@ get_header();
 	<div>
 			<header class="mb-8">
 				<h1 class="text-4xl font-bold text-gray-900">
-					<?php printf( esc_html__( 'Результаты поиска: %s', 'scam-dev' ), '<span class="text-blue-600">' . get_search_query() . '</span>' ); ?>
+					<?php printf( esc_html__( 'Результаты поиска: %s', 'scam-dev' ), '<span class="text-blue-600">' . esc_html( get_search_query() ) . '</span>' ); ?>
 				</h1>
 			</header>
 

@@ -22,7 +22,7 @@
 										border: 1.5px solid var(--color-accent);
 									"
 								placeholder="Поиск ..."
-								value="<?php echo get_search_query(); ?>" />
+								value="<?php echo esc_attr( get_search_query() ); ?>" />
 						</form>
 					</div>
 				</div>
