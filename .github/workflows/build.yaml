@@ -40,7 +40,22 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: JavaScript lint
-        run: npm run lint:js
+        id: javascript_lint
+        continue-on-error: true
+        run: npm run lint:js 2>&1 | tee javascript-lint.log
+
+      - name: Upload JavaScript lint report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: javascript-lint-report
+          path: javascript-lint.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce JavaScript lint
+        if: steps.javascript_lint.outcome == 'failure'
+        run: exit 1
 
       - name: CSS lint
         run: npm run lint:css:ci
