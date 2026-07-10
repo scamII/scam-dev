@@ -1,22 +1,25 @@
 <?php
+/**
+ * Page template.
+ *
+ * @package Scam_Dev
+ */
+
 get_header();
 
 while ( have_posts() ) :
 	the_post();
 	?>
-
 	<section class="relative overflow-hidden border-b border-slate-500/10">
-		<div class="absolute inset-0 bg-gradient-to-b from-coral-500/5 to-transparent"></div>
-		<div class="grid-bg absolute inset-0 opacity-50"></div>
-
+		<div class="grid-bg absolute inset-0 opacity-50" aria-hidden="true"></div>
 		<div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 md:py-20 text-center">
 			<h1 class="text-3xl md:text-5xl font-extrabold text-white leading-tight">
-				<?php the_title(); ?>
+				<?php echo esc_html( get_the_title() ); ?>
 			</h1>
 		</div>
 	</section>
 
-	<article>
+	<article <?php post_class(); ?>>
 		<?php if ( has_post_thumbnail() ) : ?>
 			<div class="max-w-4xl mx-auto px-4 sm:px-6 -mt-8 relative z-10">
 				<?php
@@ -36,9 +39,16 @@ while ( have_posts() ) :
 			<div class="prose prose-lg max-w-none">
 				<?php the_content(); ?>
 			</div>
+			<?php
+			wp_link_pages(
+				array(
+					'before' => '<nav class="page-links" aria-label="' . esc_attr__( 'Страницы', 'scam-dev' ) . '">',
+					'after'  => '</nav>',
+				)
+			);
+			?>
 		</div>
 	</article>
-
 	<?php
 endwhile;
 

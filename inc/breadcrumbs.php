@@ -1,45 +1,75 @@
 <?php
-if ( ! defined( "ABSPATH" ) ) { exit; }
+/**
+ * Breadcrumb navigation.
+ *
+ * @package Scam_Dev
+ */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
+/**
+ * Render escaped breadcrumbs for common WordPress views.
+ */
 function scam_dev_breadcrumbs() {
-	$sep  = ' <span class="mx-2 text-slate-500/40">/</span> ';
-	$home = '<a href="' . esc_url( home_url( '/' ) ) . '" class="text-gray-500 hover:text-coral-400 transition-colors">' . esc_html__( 'Главная', 'scam-dev' ) . '</a>';
-
 	if ( is_front_page() ) {
 		return;
 	}
 
-	echo '<nav class="flex flex-wrap items-center text-sm py-4 border-b border-slate-500/10 mb-8" aria-label="' . esc_attr__( 'Хлебные крошки', 'scam-dev' ) . '">';
-	echo $home;
+	$separator = ' <span class="mx-2 text-slate-500/40" aria-hidden="true">/</span> ';
+	$home_url  = esc_url( home_url( '/' ) );
+	$home_text = esc_html__( 'Главная', 'scam-dev' );
+
+	echo '<nav class="flex flex-wrap items-center text-sm py-4 '
+		. 'border-b border-slate-500/10 mb-8" aria-label="'
+		. esc_attr__( 'Хлебные крошки', 'scam-dev' ) . '">';
+	echo '<a href="' . $home_url . '" class="text-gray-500 '
+		. 'hover:text-coral-400 transition-colors">' . $home_text . '</a>';
 
 	if ( is_single() ) {
-		$cats = get_the_category();
-		if ( $cats ) {
-			echo $sep;
-			echo '<a href="' . esc_url( get_category_link( $cats[0]->term_id ) ) . '" class="text-gray-500 hover:text-coral-400 transition-colors">' . esc_html( $cats[0]->name ) . '</a>';
+		$categories = get_the_category();
+
+		if ( $categories ) {
+			$category_url = get_category_link( $categories[0]->term_id );
+
+			if ( ! is_wp_error( $category_url ) ) {
+				echo $separator; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				echo '<a href="' . esc_url( $category_url ) . '" '
+					. 'class="text-gray-500 hover:text-coral-400 '
+					. 'transition-colors">'
+					. esc_html( $categories[0]->name ) . '</a>';
+			}
 		}
-		echo $sep;
-		echo '<span class="text-gray-300">' . esc_html( get_the_title() ) . '</span>';
+
+		echo $separator; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '<span class="text-gray-300">'
+			. esc_html( get_the_title() ) . '</span>';
 	} elseif ( is_page() ) {
-		echo $sep;
-		echo '<span class="text-gray-300">' . esc_html( get_the_title() ) . '</span>';
+		echo $separator; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '<span class="text-gray-300">'
+			. esc_html( get_the_title() ) . '</span>';
 	} elseif ( is_category() || is_tag() || is_tax() ) {
-		echo $sep;
-		echo '<span class="text-gray-300">' . esc_html( single_term_title( '', false ) ) . '</span>';
+		echo $separator; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '<span class="text-gray-300">'
+			. esc_html( single_term_title( '', false ) ) . '</span>';
 	} elseif ( is_search() ) {
-		echo $sep;
-		echo '<span class="text-gray-300">' . sprintf( esc_html__( 'Поиск: %s', 'scam-dev' ), esc_html( get_search_query() ) ) . '</span>';
+		echo $separator; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '<span class="text-gray-300">'
+			. esc_html(
+				sprintf(
+					/* translators: %s: search query. */
+					__( 'Поиск: %s', 'scam-dev' ),
+					get_search_query()
+				)
+			) . '</span>';
 	} elseif ( is_archive() ) {
-		if ( is_year() ) {
-			echo $sep . '<span class="text-gray-300">' . esc_html( get_the_date( 'Y' ) ) . '</span>';
-		} elseif ( is_month() ) {
-			echo $sep . '<span class="text-gray-300">' . esc_html( get_the_date( 'F Y' ) ) . '</span>';
-		} else {
-			echo $sep . '<span class="text-gray-300">' . esc_html__( 'Архивы', 'scam-dev' ) . '</span>';
-		}
+		echo $separator; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '<span class="text-gray-300">'
+			. esc_html( get_the_archive_title() ) . '</span>';
 	} elseif ( is_404() ) {
-		echo $sep . '<span class="text-gray-300">404</span>';
+		echo $separator; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '<span class="text-gray-300">404</span>';
 	}
 
 	echo '</nav>';

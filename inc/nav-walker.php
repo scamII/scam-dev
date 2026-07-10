@@ -1,57 +1,121 @@
 <?php
+/**
+ * Primary menu walker.
+ *
+ * @package Scam_Dev
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tailwind-oriented menu walker.
+ */
 class Scam_Dev_Nav_Walker extends Walker_Nav_Menu {
 
+	/**
+	 * Start a submenu level.
+	 *
+	 * @param string   $output Output buffer.
+	 * @param int      $depth  Menu depth.
+	 * @param stdClass $args   Menu args.
+	 */
 	public function start_lvl( &$output, $depth = 0, $args = null ) {
-		$output .= '<ul class="absolute top-full left-0 w-48 rounded-xl shadow-2xl py-2 z-50 hidden group-hover:block" style="background:var(--color-header-bg);backdrop-filter:blur(20px);border:2px solid var(--color-border);box-shadow:var(--shadow-md)">';
+		unset( $depth, $args );
+		$output .= '<ul class="absolute top-full left-0 w-48 rounded-xl shadow-2xl py-2 z-50 hidden group-hover:block group-focus-within:block account-submenu">';
 	}
 
+	/**
+	 * End a submenu level.
+	 *
+	 * @param string   $output Output buffer.
+	 * @param int      $depth  Menu depth.
+	 * @param stdClass $args   Menu args.
+	 */
 	public function end_lvl( &$output, $depth = 0, $args = null ) {
+		unset( $depth, $args );
 		$output .= '</ul>';
 	}
 
+	/**
+	 * Start a menu item.
+	 *
+	 * @param string   $output            Output buffer.
+	 * @param WP_Post  $data_object       Menu item.
+	 * @param int      $depth             Menu depth.
+	 * @param stdClass $args              Menu args.
+	 * @param int      $current_object_id Current item ID.
+	 */
 	public function start_el( &$output, $data_object, $depth = 0, $args = null, $current_object_id = 0 ) {
-		$classes   = empty( $data_object->classes ) ? array() : (array) $data_object->classes;
-		$has_kids  = in_array( 'menu-item-has-children', $classes );
-		$is_active = in_array( 'current-menu-item', $classes ) || in_array( 'current-menu-parent', $classes );
+		unset( $args, $current_object_id );
 
-		$li_class  = 'relative' . ( $has_kids ? ' group' : '' );
-		$link_base = 'block px-4 py-2 rounded-lg text-sm font-medium transition-colors';
+		$classes   = empty( $data_object->classes ) ? array() : (array) $data_object->classes;
+		$has_kids  = in_array( 'menu-item-has-children', $classes, true );
+		$is_active = in_array( 'current-menu-item', $classes, true )
+			|| in_array( 'current-menu-parent', $classes, true );
+
+		$li_class = 'relative' . ( $has_kids ? ' group' : '' );
 
 		if ( 0 === $depth ) {
-			$link_class = $link_base . ' ' . ( $is_active ? 'text-white bg-coral-500/20' : 'text-gray-300 hover:text-white hover:bg-slate-500/10' );
+			$link_class = 'block px-4 py-2 rounded-lg text-sm font-medium transition-colors '
+				. ( $is_active
+					? 'text-white bg-coral-500/20'
+					: 'text-gray-300 hover:text-white hover:bg-slate-500/10'
+				);
 		} else {
 			$link_class = 'block px-4 py-2 mx-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-slate-500/10 transition-colors';
 		}
 
 		$output .= '<li class="' . esc_attr( $li_class ) . '">';
 
-		$atts           = array();
-		$atts['href']   = ! empty( $data_object->url ) ? $data_object->url : '#';
-		$atts['class']  = $link_class;
-		$atts['target'] = ! empty( $data_object->target ) ? $data_object->target : '';
-		$atts['rel']    = ! empty( $data_object->xfn ) ? $data_object->xfn : '';
+		$attributes = array(
+			'href'   => ! empty( $data_object->url ) ? $data_object->url : '#',
+			'class'  => $link_class,
+			'target' => ! empty( $data_object->target ) ? $data_object->target : '',
+			'rel'    => ! empty( $data_object->xfn ) ? $data_object->xfn : '',
+		);
 
-		$attributes = '';
-		foreach ( $atts as $attr => $value ) {
-			if ( ! empty( $value ) ) {
-				$value       = ( 'href' === $attr ) ? esc_url( $value ) : esc_attr( $value );
-				$attributes .= ' ' . $attr . '="' . $value . '"';
-			}
+		if ( $has_kids ) {
+			$attributes['aria-haspopup'] = 'true';
 		}
 
-		$title = apply_filters( 'the_title', $data_object->title, $data_object->ID );
-		$svg   = ' <svg class="inline-block w-3 h-3 ml-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>';
-		$title = $has_kids ? esc_html( $title ) . $svg : esc_html( $title );
+		$attribute_html = '';
+		foreach ( $attributes as $attribute => $value ) {
+			if ( '' === $value ) {
+				continue;
+			}
 
-		$output .= '<a' . $attributes . '>' . $title . '</a>';
+			$value = 'href' === $attribute ? esc_url( $value ) : esc_attr( $value );
+			$attribute_html .= ' ' . esc_attr( $attribute ) . '="' . $value . '"';
+		}
+
+		$title = apply_filters(
+			'the_title',
+			$data_object->title,
+			$data_object->ID
+		);
+
+		$output .= '<a' . $attribute_html . '>';
+		$output .= esc_html( $title );
+
+		if ( $has_kids ) {
+			$output .= ' <span aria-hidden="true">▾</span>';
+		}
+
+		$output .= '</a>';
 	}
 
+	/**
+	 * End a menu item.
+	 *
+	 * @param string   $output      Output buffer.
+	 * @param WP_Post  $data_object Menu item.
+	 * @param int      $depth       Menu depth.
+	 * @param stdClass $args        Menu args.
+	 */
 	public function end_el( &$output, $data_object, $depth = 0, $args = null ) {
+		unset( $data_object, $depth, $args );
 		$output .= '</li>';
 	}
 }

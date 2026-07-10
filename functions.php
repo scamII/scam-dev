@@ -1,95 +1,155 @@
 <?php
+/**
+ * Scam Dev theme bootstrap.
+ *
+ * @package Scam_Dev
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SCAM_DEV_VERSION', '1.0.0' );
+$scam_dev_theme = wp_get_theme( get_template() );
+define( 'SCAM_DEV_VERSION', $scam_dev_theme->get( 'Version' ) ?: '1.3.0' );
+unset( $scam_dev_theme );
 
-add_filter( 'show_admin_bar', '__return_false' );
+require_once get_template_directory() . '/inc/setup.php';
+require_once get_template_directory() . '/inc/nav-walker.php';
+require_once get_template_directory() . '/inc/enqueue.php';
+require_once get_template_directory() . '/inc/customizer.php';
+require_once get_template_directory() . '/inc/hero.php';
+require_once get_template_directory() . '/inc/highlightjs.php';
+require_once get_template_directory() . '/inc/breadcrumbs.php';
+require_once get_template_directory() . '/inc/class-theme-updater.php';
 
-require get_template_directory() . '/inc/setup.php';
-require get_template_directory() . '/inc/nav-walker.php';
-require get_template_directory() . '/inc/enqueue.php';
-require get_template_directory() . '/inc/customizer.php';
-require get_template_directory() . '/inc/hero.php';
-require get_template_directory() . '/inc/highlightjs.php';
-require get_template_directory() . '/inc/breadcrumbs.php';
-require get_template_directory() . '/inc/class-theme-updater.php';
-
+/**
+ * Exclude the horses category from the regular blog index.
+ *
+ * @param WP_Query $query Main query.
+ */
 function scam_dev_exclude_horses_from_blog( $query ) {
-	if ( ! is_admin() && $query->is_home() && $query->is_main_query() ) {
-		$cat = get_category_by_slug( 'loshadi' );
-		if ( $cat ) {
-			$exclude = $query->get( 'category__not_in' );
-			$exclude = $exclude ? array_merge( (array) $exclude, array( $cat->term_id ) ) : array( $cat->term_id );
-			$query->set( 'category__not_in', $exclude );
-		}
+	if ( is_admin() || ! $query->is_home() || ! $query->is_main_query() ) {
+		return;
 	}
+
+	$category = get_category_by_slug( 'loshadi' );
+
+	if ( ! $category ) {
+		return;
+	}
+
+	$excluded   = (array) $query->get( 'category__not_in' );
+	$excluded[] = (int) $category->term_id;
+
+	$query->set( 'category__not_in', array_values( array_unique( $excluded ) ) );
 }
 add_action( 'pre_get_posts', 'scam_dev_exclude_horses_from_blog' );
 
-function scam_dev_reading_time() {
-	$content = get_post_field( 'post_content', get_the_ID() );
-	$words   = str_word_count( wp_strip_all_tags( $content ) );
-	$minutes = ceil( $words / 200 );
-	return sprintf( _n( '%d min read', '%d min read', $minutes, 'scam-dev' ), $minutes );
+/**
+ * Calculate an approximate Unicode-aware reading time.
+ *
+ * @param int|WP_Post|null $post Post object or ID.
+ * @return string
+ */
+function scam_dev_reading_time( $post = null ) {
+	$post = get_post( $post );
+
+	if ( ! $post ) {
+		return '';
+	}
+
+	$content = wp_strip_all_tags( strip_shortcodes( $post->post_content ) );
+	preg_match_all( '/[\p{L}\p{N}]+/u', $content, $matches );
+
+	$word_count = isset( $matches[0] ) ? count( $matches[0] ) : 0;
+	$minutes    = max( 1, (int) ceil( $word_count / 200 ) );
+
+	return sprintf(
+		/* translators: %d: number of minutes. */
+		_n( '%d минута чтения', '%d минут чтения', $minutes, 'scam-dev' ),
+		$minutes
+	);
 }
-// Dynamic "My Account" menu item based on user role
-add_filter(
-	'wp_nav_menu_items',
-	function ( $items, $args ) {
-		if ( 'primary' !== $args->theme_location ) {
-			return $items;
-		}
 
-		if ( ! is_user_logged_in() ) {
-			$items .= '<li class="relative"><a href="' . esc_url( wp_login_url() ) . '" class="block px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-300 hover:text-white hover:bg-slate-500/10">Войти</a></li>';
-			return $items;
-		}
+/**
+ * Add an account link to the primary menu.
+ *
+ * @param string   $items Existing menu markup.
+ * @param stdClass $args  Menu arguments.
+ * @return string
+ */
+function scam_dev_add_account_menu_item( $items, $args ) {
+	if ( empty( $args->theme_location ) || 'primary' !== $args->theme_location ) {
+		return $items;
+	}
 
-		$user     = wp_get_current_user();
-		$roles    = (array) $user->roles;
-		$is_admin = array_intersect( $roles, array( 'administrator', 'editor' ) );
-		$is_mod   = in_array( 'moderator', $roles ) || current_user_can( 'moderate_comments' );
-
-		if ( $is_admin ) {
-			$url   = admin_url();
-			$label = 'Панель';
-		} elseif ( $is_mod ) {
-			$url   = admin_url( 'edit-comments.php' );
-			$label = 'Модерация';
-		} else {
-			$url   = admin_url( 'profile.php' );
-			$label = 'Профиль';
-		}
-
-		$items .= '<li class="relative group">';
-		$items .= '<a href="' . esc_url( $url ) . '" class="block px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-300 hover:text-white hover:bg-slate-500/10">';
-		$items .= esc_html( $label );
-		$items .= '<svg class="inline-block w-3 h-3 ml-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>';
-		$items .= '</a>';
-		$items .= '<ul class="absolute top-full right-0 w-48 rounded-xl shadow-2xl py-2 z-50 hidden group-hover:block" style="background:var(--color-header-bg);backdrop-filter:blur(20px);border:2px solid(var(--color-border, rgba(255,255,255,0.08)));box-shadow:var(--shadow-md)">';
-		$items .= '<li><a href="' . esc_url( admin_url( 'profile.php' ) ) . '" class="block px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-slate-500/10 transition-colors">Профиль</a></li>';
-
-		if ( $is_admin ) {
-			$items .= '<li><a href="' . esc_url( admin_url() ) . '" class="block px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-slate-500/10 transition-colors">Консоль</a></li>';
-			$items .= '<li><a href="' . esc_url( admin_url( 'customize.php' ) ) . '" class="block px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-slate-500/10 transition-colors">Настроить</a></li>';
-		}
-
-		$items .= '<li><a href="' . esc_url( wp_logout_url( home_url() ) ) . '" class="block px-4 py-2 text-sm text-coral-400 hover:text-white hover:bg-slate-500/10 transition-colors">Выйти</a></li>';
-		$items .= '</ul>';
-		$items .= '</li>';
+	if ( ! is_user_logged_in() ) {
+		$items .= sprintf(
+			'<li class="relative"><a href="%1$s" '
+			. 'class="block px-4 py-2 rounded-lg text-sm font-medium '
+			. 'transition-colors text-gray-300 hover:text-white '
+			. 'hover:bg-slate-500/10">%2$s</a></li>',
+			esc_url( wp_login_url() ),
+			esc_html__( 'Войти', 'scam-dev' )
+		);
 
 		return $items;
-	},
-	10,
-	2
-);
-
-function scam_dev_wp70_fix() {
-	if ( is_admin() ) {
-		wp_add_inline_script( 'wp-html-entities', 'window.wp=window.wp||{};window.wp.htmlEntities=window.wp.htmlEntities||{};if(!window.wp.htmlEntities.decodeEntities){window.wp.htmlEntities.decodeEntities=function(t){var e=document.createElement("textarea");e.innerHTML=t;return e.value}}' );
 	}
+
+	if ( current_user_can( 'manage_options' ) ) {
+		$primary_url   = admin_url();
+		$primary_label = __( 'Панель', 'scam-dev' );
+	} elseif ( current_user_can( 'moderate_comments' ) ) {
+		$primary_url   = admin_url( 'edit-comments.php' );
+		$primary_label = __( 'Модерация', 'scam-dev' );
+	} else {
+		$primary_url   = admin_url( 'profile.php' );
+		$primary_label = __( 'Профиль', 'scam-dev' );
+	}
+
+	$items .= '<li class="relative group">';
+	$items .= sprintf(
+		'<a href="%1$s" class="block px-4 py-2 rounded-lg '
+		. 'text-sm font-medium transition-colors text-gray-300 '
+		. 'hover:text-white hover:bg-slate-500/10">%2$s '
+		. '<span aria-hidden="true">▾</span></a>',
+		esc_url( $primary_url ),
+		esc_html( $primary_label )
+	);
+	$items .= '<ul class="absolute top-full right-0 w-48 rounded-xl '
+		. 'shadow-2xl py-2 z-50 hidden group-hover:block '
+		. 'group-focus-within:block account-submenu">';
+
+	$items .= sprintf(
+		'<li><a href="%1$s" class="block px-4 py-2 text-sm '
+		. 'text-gray-400 hover:text-white hover:bg-slate-500/10">%2$s</a></li>',
+		esc_url( admin_url( 'profile.php' ) ),
+		esc_html__( 'Профиль', 'scam-dev' )
+	);
+
+	if ( current_user_can( 'manage_options' ) ) {
+		$items .= sprintf(
+			'<li><a href="%1$s" class="block px-4 py-2 text-sm '
+			. 'text-gray-400 hover:text-white hover:bg-slate-500/10">%2$s</a></li>',
+			esc_url( admin_url() ),
+			esc_html__( 'Консоль', 'scam-dev' )
+		);
+		$items .= sprintf(
+			'<li><a href="%1$s" class="block px-4 py-2 text-sm '
+			. 'text-gray-400 hover:text-white hover:bg-slate-500/10">%2$s</a></li>',
+			esc_url( admin_url( 'customize.php' ) ),
+			esc_html__( 'Настроить', 'scam-dev' )
+		);
+	}
+
+	$items .= sprintf(
+		'<li><a href="%1$s" class="block px-4 py-2 text-sm '
+		. 'text-coral-400 hover:text-white hover:bg-slate-500/10">%2$s</a></li>',
+		esc_url( wp_logout_url( home_url( '/' ) ) ),
+		esc_html__( 'Выйти', 'scam-dev' )
+	);
+	$items .= '</ul></li>';
+
+	return $items;
 }
-add_action( 'admin_enqueue_scripts', 'scam_dev_wp70_fix' );
+add_filter( 'wp_nav_menu_items', 'scam_dev_add_account_menu_item', 10, 2 );

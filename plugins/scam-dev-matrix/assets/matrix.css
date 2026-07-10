@@ -1,0 +1,161 @@
+.scamdev-matrix-page {
+	color: var(--color-text, #e8e8e8);
+}
+
+.scamdev-matrix-container {
+	width: min(100% - 2rem, 48rem);
+	margin-inline: auto;
+}
+
+.scamdev-matrix-hero {
+	padding: 4rem 0 3rem;
+	border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+	text-align: center;
+}
+
+.scamdev-matrix-hero h1 {
+	margin: 0;
+	font-size: clamp(2rem, 7vw, 3.5rem);
+}
+
+.scamdev-matrix-hero p {
+	margin-top: 1rem;
+	color: var(--color-text-secondary, #a0a0b0);
+}
+
+.scamdev-matrix-content {
+	padding-top: 3rem;
+	padding-bottom: 4rem;
+}
+
+.scamdev-matrix-card,
+.scamdev-matrix-alert,
+.scamdev-matrix-status {
+	padding: 1.5rem;
+	border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+	border-radius: 1rem;
+	background: var(--color-surface, rgba(255, 255, 255, 0.04));
+	box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.3));
+}
+
+.scamdev-matrix-alert {
+	margin-bottom: 1.5rem;
+}
+
+.scamdev-matrix-alert--error {
+	border-color: rgba(239, 68, 68, 0.45);
+	background: rgba(239, 68, 68, 0.09);
+	color: #fecaca;
+}
+
+.scamdev-matrix-alert ul {
+	margin: 0;
+	padding-left: 1.25rem;
+}
+
+.scamdev-matrix-form {
+	display: grid;
+	gap: 1.25rem;
+}
+
+.scamdev-matrix-field {
+	display: grid;
+	gap: 0.45rem;
+}
+
+.scamdev-matrix-field label {
+	font-weight: 700;
+}
+
+.scamdev-matrix-field input[type="text"],
+.scamdev-matrix-field input[type="password"] {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0.8rem 1rem;
+	border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.15));
+	border-radius: 0.75rem;
+	background: var(--color-bg, #19253b);
+	color: var(--color-text, #e8e8e8);
+}
+
+.scamdev-matrix-password {
+	position: relative;
+}
+
+.scamdev-matrix-password input {
+	padding-right: 7rem !important;
+}
+
+.scamdev-matrix-password-toggle {
+	position: absolute;
+	top: 50%;
+	right: 0.5rem;
+	transform: translateY(-50%);
+	padding: 0.35rem 0.55rem;
+	border: 0;
+	background: transparent;
+	color: var(--color-text-secondary, #a0a0b0);
+	cursor: pointer;
+}
+
+.scamdev-matrix-help {
+	margin: 0;
+	color: var(--color-text-secondary, #a0a0b0);
+	font-size: 0.8rem;
+	line-height: 1.5;
+}
+
+.scamdev-matrix-consent {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	font-size: 0.9rem;
+}
+
+.scamdev-matrix-consent input {
+	margin-top: 0.25rem;
+}
+
+.scamdev-matrix-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.85rem 1.25rem;
+	border: 0;
+	border-radius: 0.75rem;
+	background: var(--color-accent, #ff5743);
+	color: #19253b;
+	font-weight: 800;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.scamdev-matrix-success {
+	text-align: center;
+}
+
+.scamdev-matrix-status__header {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.scamdev-matrix-status__header span {
+	color: #22c55e;
+}
+
+.scamdev-matrix-status__online,
+.scamdev-matrix-status__offline,
+.scamdev-matrix-status__meta {
+	margin: 0.75rem 0 0;
+	font-size: 0.875rem;
+}
+
+.scamdev-matrix-status__online {
+	color: #86efac;
+}
+
+.scamdev-matrix-status__offline,
+.scamdev-matrix-status__meta {
+	color: var(--color-text-secondary, #a0a0b0);
+}

@@ -4,8 +4,8 @@ const path = require( 'path' );
 module.exports = {
 	...defaultConfig,
 	entry: {
-		app: path.resolve( __dirname, 'assets/js/app.js' ),
-		style: path.resolve( __dirname, 'assets/scss/style.css' ),
+		app: path.resolve( __dirname, 'assets/js/src/index.jsx' ),
+		style: path.resolve( __dirname, 'assets/scss/remediation.css' ),
 		editor: path.resolve( __dirname, 'assets/scss/editor.css' ),
 	},
 	output: {

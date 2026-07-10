@@ -1,20 +1,29 @@
-<article id="post-<?php the_ID(); ?>" <?php post_class( 'bg-white rounded-lg shadow-sm p-6' ); ?>>
-	<header class="mb-3">
-		<h2 class="text-xl font-bold text-gray-900">
-			<a href="<?php the_permalink(); ?>" class="hover:text-blue-600 transition-colors">
-				<?php the_title(); ?>
-			</a>
-		</h2>
-		<div class="mt-1 text-sm text-gray-500">
-			<time datetime="<?php echo get_the_date( 'c' ); ?>"><?php echo get_the_date(); ?></time>
-		</div>
-	</header>
+<?php
+/**
+ * Search result card.
+ *
+ * @package Scam_Dev
+ */
+?>
+<article id="post-<?php the_ID(); ?>" <?php post_class( 'card p-6' ); ?>>
+	<h2 class="text-xl font-bold text-white">
+		<a href="<?php echo esc_url( get_permalink() ); ?>"
+			class="hover:text-coral-400 transition-colors">
+			<?php echo esc_html( get_the_title() ); ?>
+		</a>
+	</h2>
 
-	<div class="text-gray-700">
-		<?php the_excerpt( array( 'limit' => 30 ) ); ?>
-	</div>
+	<time class="mt-2 block text-xs text-gray-500"
+		datetime="<?php echo esc_attr( get_the_date( 'c' ) ); ?>">
+		<?php echo esc_html( get_the_date() ); ?>
+	</time>
 
-	<a href="<?php the_permalink(); ?>" class="inline-block mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium">
+	<p class="mt-3 text-gray-400">
+		<?php echo esc_html( get_the_excerpt() ); ?>
+	</p>
+
+	<a href="<?php echo esc_url( get_permalink() ); ?>"
+		class="inline-block mt-3 text-coral-400 hover:text-coral-300 text-sm font-medium">
 		<?php esc_html_e( 'Читать далее', 'scam-dev' ); ?> &rarr;
 	</a>
 </article>

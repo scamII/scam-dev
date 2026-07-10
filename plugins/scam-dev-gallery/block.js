@@ -1,86 +1,56 @@
 ( function ( wp ) {
-	const el = wp.element.createElement;
+	'use strict';
+
+	const element = wp.element.createElement;
 	const InspectorControls = wp.blockEditor.InspectorControls;
 	const PanelBody = wp.components.PanelBody;
 	const RangeControl = wp.components.RangeControl;
+	const TextControl = wp.components.TextControl;
 
 	wp.blocks.registerBlockType( 'scamdev/gallery', {
 		edit( props ) {
-			const attrs = props.attributes;
-			return el(
-				'div',
-				{ className: props.className },
-				el(
+			const attributes = props.attributes;
+
+			return element(
+				wp.element.Fragment,
+				{},
+				element(
 					'div',
 					{
+						className: props.className,
 						style: {
-							padding: '20px',
-							background: '#f0f0f0',
+							padding: '24px',
+							border: '1px dashed #8c8f94',
 							borderRadius: '8px',
 							textAlign: 'center',
 						},
 					},
-					el(
-						'div',
-						{
-							style: {
-								display: 'flex',
-								gap: '8px',
-								justifyContent: 'center',
-								marginBottom: '12px',
-							},
-						},
-						el( 'div', {
-							style: {
-								width: '60px',
-								height: '60px',
-								background: '#d0d0d0',
-								borderRadius: '4px',
-							},
-						} ),
-						el( 'div', {
-							style: {
-								width: '60px',
-								height: '60px',
-								background: '#d0d0d0',
-								borderRadius: '4px',
-							},
-						} ),
-						el( 'div', {
-							style: {
-								width: '60px',
-								height: '60px',
-								background: '#d0d0d0',
-								borderRadius: '4px',
-							},
-						} )
-					),
-					el(
-						'p',
-						{
-							style: {
-								margin: '8px 0 0',
-								fontSize: '14px',
-								color: '#666',
-							},
-						},
-						'Галерея Scam Dev — все изображения из галерей будут показаны здесь'
-					)
+					'Галерея Scam Dev будет отображена на сайте.'
 				),
-				el(
+				element(
 					InspectorControls,
 					{},
-					el(
+					element(
 						PanelBody,
-						{ title: 'Настройки сетки' },
-						el( RangeControl, {
+						{ title: 'Настройки галереи' },
+						element( RangeControl, {
 							label: 'Колонок',
-							value: attrs.cols || 3,
-							onChange( v ) {
-								props.setAttributes( { cols: v } );
+							value: attributes.cols,
+							onChange( value ) {
+								props.setAttributes( { cols: value } );
 							},
 							min: 2,
 							max: 6,
+						} ),
+						element( TextControl, {
+							label: 'ID галереи (0 — все опубликованные)',
+							type: 'number',
+							value: attributes.galleryId || 0,
+							onChange( value ) {
+								props.setAttributes( {
+									galleryId: Number.parseInt( value, 10 ) || 0,
+								} );
+							},
 						} )
 					)
 				)

@@ -1,57 +1,124 @@
 services:
   mysql:
-    image: mysql:8.0
-    container_name: scam-dev-mysql
+    image: ${MYSQL_IMAGE:-mysql:8.0}
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: wordpress
-      MYSQL_USER: wordpress
-      MYSQL_PASSWORD: wordpress
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${WORDPRESS_DB_NAME:-wordpress}
+      MYSQL_USER: ${WORDPRESS_DB_USER:-wordpress}
+      MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD:?Set WORDPRESS_DB_PASSWORD in .env}
     volumes:
       - mysql_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
+    networks:
+      - backend
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h 127.0.0.1 -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent
+      interval: 10s
+      timeout: 5s
       retries: 10
+      start_period: 20s
 
   wordpress:
-    image: wordpress:latest
-    container_name: scam-dev-wordpress
+    image: ${WORDPRESS_IMAGE:-wordpress:6.7-php8.3-apache}
+    restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
     environment:
       WORDPRESS_DB_HOST: mysql:3306
-      WORDPRESS_DB_NAME: wordpress
-      WORDPRESS_DB_USER: wordpress
-      WORDPRESS_DB_PASSWORD: wordpress
-      WORDPRESS_DEBUG: "true"
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:-wordpress}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:-wordpress}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:?Set WORDPRESS_DB_PASSWORD in .env}
+      WORDPRESS_DEBUG: ${WORDPRESS_DEBUG:-0}
+      MATRIX_HOMESERVER_URL: ${MATRIX_HOMESERVER_URL:-}
+      MATRIX_EXPECTED_HOST: ${MATRIX_EXPECTED_HOST:-}
+      MATRIX_ADMIN_TOKEN: ${MATRIX_ADMIN_TOKEN:-}
+      MATRIX_CHAT_URL: ${MATRIX_CHAT_URL:-https://chat.scam-dev.ru}
+      SCAM_DEV_MATRIX_REGISTRATION_ENABLED: ${SCAM_DEV_MATRIX_REGISTRATION_ENABLED:-0}
+      SCAM_DEV_MATRIX_INVITE_CODE: ${SCAM_DEV_MATRIX_INVITE_CODE:-}
+      SCAM_DEV_TURNSTILE_SITE_KEY: ${SCAM_DEV_TURNSTILE_SITE_KEY:-}
+      SCAM_DEV_TURNSTILE_SECRET_KEY: ${SCAM_DEV_TURNSTILE_SECRET_KEY:-}
+      SCAM_DEV_TURNSTILE_EXPECTED_HOST: ${SCAM_DEV_TURNSTILE_EXPECTED_HOST:-}
+      VK_API_TOKEN: ${VK_API_TOKEN:-}
+      SCAM_DEV_UPDATE_PUBLIC_KEY: ${SCAM_DEV_UPDATE_PUBLIC_KEY:-}
+      WORDPRESS_CONFIG_EXTRA: |
+        define( 'DISALLOW_FILE_EDIT', true );
+        define( 'MATRIX_HOMESERVER_URL', getenv( 'MATRIX_HOMESERVER_URL' ) ?: '' );
+        if ( getenv( 'MATRIX_EXPECTED_HOST' ) ) {
+            define( 'MATRIX_EXPECTED_HOST', getenv( 'MATRIX_EXPECTED_HOST' ) );
+        }
+        define( 'MATRIX_ADMIN_TOKEN', getenv( 'MATRIX_ADMIN_TOKEN' ) ?: '' );
+        define( 'MATRIX_CHAT_URL', getenv( 'MATRIX_CHAT_URL' ) ?: 'https://chat.scam-dev.ru' );
+        define( 'SCAM_DEV_MATRIX_REGISTRATION_ENABLED', '1' === getenv( 'SCAM_DEV_MATRIX_REGISTRATION_ENABLED' ) );
+        define( 'SCAM_DEV_MATRIX_INVITE_CODE', getenv( 'SCAM_DEV_MATRIX_INVITE_CODE' ) ?: '' );
+        define( 'SCAM_DEV_TURNSTILE_SITE_KEY', getenv( 'SCAM_DEV_TURNSTILE_SITE_KEY' ) ?: '' );
+        define( 'SCAM_DEV_TURNSTILE_SECRET_KEY', getenv( 'SCAM_DEV_TURNSTILE_SECRET_KEY' ) ?: '' );
+        if ( getenv( 'SCAM_DEV_TURNSTILE_EXPECTED_HOST' ) ) {
+            define( 'SCAM_DEV_TURNSTILE_EXPECTED_HOST', getenv( 'SCAM_DEV_TURNSTILE_EXPECTED_HOST' ) );
+        }
+        define( 'VK_API_TOKEN', getenv( 'VK_API_TOKEN' ) ?: '' );
+        if ( getenv( 'SCAM_DEV_UPDATE_PUBLIC_KEY' ) ) {
+            define( 'SCAM_DEV_UPDATE_PUBLIC_KEY', getenv( 'SCAM_DEV_UPDATE_PUBLIC_KEY' ) );
+        }
     volumes:
       - wordpress_data:/var/www/html
       - type: bind
-        source: .
+        source: ./.dev/theme/scam-dev
         target: /var/www/html/wp-content/themes/scam-dev
+        read_only: true
+      - type: bind
+        source: ./plugins/scam-dev-donate-widget
+        target: /var/www/html/wp-content/plugins/scam-dev-donate-widget
+        read_only: true
+      - type: bind
+        source: ./plugins/scam-dev-gallery
+        target: /var/www/html/wp-content/plugins/scam-dev-gallery
+        read_only: true
+      - type: bind
+        source: ./plugins/scam-dev-matrix
+        target: /var/www/html/wp-content/plugins/scam-dev-matrix
+        read_only: true
+      - type: bind
+        source: ./plugins/scam-dev-seo
+        target: /var/www/html/wp-content/plugins/scam-dev-seo
+        read_only: true
+      - type: bind
+        source: ./plugins/scam-dev-svg
+        target: /var/www/html/wp-content/plugins/scam-dev-svg
+        read_only: true
+      - type: bind
+        source: ./plugins/scam-dev-vk-import
+        target: /var/www/html/wp-content/plugins/scam-dev-vk-import
+        read_only: true
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
+    networks:
+      - default
+      - backend
 
   phpmyadmin:
-    image: phpmyadmin:latest
-    container_name: scam-dev-pma
+    image: ${PHPMYADMIN_IMAGE:-phpmyadmin:5.2-apache}
+    profiles:
+      - debug
+    restart: unless-stopped
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: root
-      PMA_CONTROLHOST: mysql
-      PMA_CONTROLUSER: pma
-      PMA_CONTROLPASS: scam-dev-pma-secure
+      UPLOAD_LIMIT: 32M
     ports:
-      - "8081:80"
+      - "127.0.0.1:8081:80"
+    networks:
+      - backend
 
 volumes:
   mysql_data:
   wordpress_data:
+
+networks:
+  backend:
+    internal: true

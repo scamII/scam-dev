@@ -1,104 +1,380 @@
 <?php
+/**
+ * Signed theme update client.
+ *
+ * The manifest format is:
+ *
+ * {
+ *   "payload":   "<base64-encoded canonical JSON>",
+ *   "signature": "<base64-encoded Ed25519 detached signature>"
+ * }
+ *
+ * The public key must be configured outside the repository:
+ *
+ * define( 'SCAM_DEV_UPDATE_PUBLIC_KEY', '<base64 32-byte Ed25519 public key>' );
+ *
+ * @package Scam_Dev
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Scam_Dev_Theme_Updater {
+/**
+ * Signed update client for the Scam Dev theme.
+ */
+final class Scam_Dev_Theme_Updater {
 
+	/**
+	 * Theme directory slug.
+	 *
+	 * @var string
+	 */
 	private $theme_slug;
+
+	/**
+	 * Current theme version.
+	 *
+	 * @var string
+	 */
 	private $theme_version;
-	private $update_url;
-	private $allowed_host = 'scam-dev.ru';
 
+	/**
+	 * Signed manifest URL.
+	 *
+	 * @var string
+	 */
+	private $manifest_url;
+
+	/**
+	 * Allowed package host.
+	 *
+	 * @var string
+	 */
+	private $allowed_host;
+
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
-		$theme               = wp_get_theme();
-		$this->theme_slug    = $theme->get_template();
-		$this->theme_version = $theme->get( 'Version' );
-		$this->update_url    = 'https://scam-dev.ru/theme-update.json';
+		$theme = wp_get_theme( get_template() );
 
-		add_filter( 'pre_set_site_transient_update_themes', array( $this, 'check_update' ) );
-		add_filter( 'auto_update_theme', array( $this, 'auto_update' ), 10, 2 );
-		add_filter( 'upgrader_pre_install', array( $this, 'verify_package_hash' ), 10, 2 );
+		$this->theme_slug    = $theme->get_template();
+		$this->theme_version = (string) $theme->get( 'Version' );
+		$this->manifest_url  = defined( 'SCAM_DEV_UPDATE_MANIFEST_URL' )
+			? (string) SCAM_DEV_UPDATE_MANIFEST_URL
+			: 'https://scam-dev.ru/theme-update.json';
+		$this->allowed_host  = (string) wp_parse_url( $this->manifest_url, PHP_URL_HOST );
+
+		add_filter(
+			'pre_set_site_transient_update_themes',
+			array( $this, 'check_update' )
+		);
+		add_filter(
+			'upgrader_pre_download',
+			array( $this, 'download_and_verify_package' ),
+			10,
+			4
+		);
 	}
 
+	/**
+	 * Add update information after verifying the signed manifest.
+	 *
+	 * @param stdClass $transient Theme update transient.
+	 * @return stdClass
+	 */
 	public function check_update( $transient ) {
-		if ( empty( $transient->checked ) ) {
+		if ( ! is_object( $transient ) || empty( $transient->checked ) ) {
 			return $transient;
 		}
 
-		$response = wp_remote_get( $this->update_url, array( 'timeout' => 10 ) );
-		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+		$data = $this->fetch_verified_manifest();
+
+		if ( is_wp_error( $data ) ) {
 			return $transient;
 		}
 
-		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		if ( ! is_array( $data ) || empty( $data['version'] ) || empty( $data['download_url'] ) || empty( $data['sha256'] ) ) {
+		$version      = isset( $data['version'] ) ? (string) $data['version'] : '';
+		$download_url = isset( $data['download_url'] ) ? esc_url_raw( $data['download_url'] ) : '';
+		$sha256       = isset( $data['sha256'] ) ? strtolower( (string) $data['sha256'] ) : '';
+
+		if ( ! preg_match( '/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/', $version ) ) {
 			return $transient;
 		}
 
-		$version      = preg_replace( '/[^0-9.]/', '', $data['version'] );
-		$download_url = esc_url_raw( $data['download_url'] );
-
-		if ( ! $version ) {
+		if ( ! $this->is_allowed_package_url( $download_url ) ) {
 			return $transient;
 		}
 
-		$host = wp_parse_url( $download_url, PHP_URL_HOST );
-		if ( $this->allowed_host !== $host || 'https' !== wp_parse_url( $download_url, PHP_URL_SCHEME ) ) {
+		if ( ! preg_match( '/^[a-f0-9]{64}$/', $sha256 ) ) {
 			return $transient;
 		}
 
-		$expected_hash = preg_replace( '/[^a-f0-9]/', '', strtolower( $data['sha256'] ) );
-		if ( 64 !== strlen( $expected_hash ) ) {
+		if ( version_compare( $this->theme_version, $version, '>=' ) ) {
 			return $transient;
 		}
 
-		if ( version_compare( $this->theme_version, $version, '<' ) ) {
-			set_transient( 'scam_dev_updater_sha256', $expected_hash, 12 * HOUR_IN_SECONDS );
+		set_site_transient(
+			$this->get_hash_transient_key( $download_url ),
+			$sha256,
+			12 * HOUR_IN_SECONDS
+		);
 
-			$transient->response[ $this->theme_slug ] = array(
-				'theme'        => $this->theme_slug,
-				'new_version'  => $version,
-				'url'          => isset( $data['url'] ) ? esc_url_raw( $data['url'] ) : '',
-				'package'      => $download_url,
-				'requires'     => isset( $data['requires'] ) ? preg_replace( '/[^0-9.]/', '', $data['requires'] ) : '6.5',
-				'requires_php' => isset( $data['requires_php'] ) ? preg_replace( '/[^0-9.]/', '', $data['requires_php'] ) : '8.0',
-			);
-		}
+		$transient->response[ $this->theme_slug ] = array(
+			'theme'        => $this->theme_slug,
+			'new_version'  => $version,
+			'url'          => isset( $data['url'] ) ? esc_url_raw( $data['url'] ) : '',
+			'package'      => $download_url,
+			'requires'     => isset( $data['requires'] ) ? sanitize_text_field( $data['requires'] ) : '6.5',
+			'requires_php' => isset( $data['requires_php'] ) ? sanitize_text_field( $data['requires_php'] ) : '8.0',
+		);
 
 		return $transient;
 	}
 
-	public function verify_package_hash( $return, $hook_extra ) {
-		if ( empty( $hook_extra['theme'] ) || $hook_extra['theme'] !== $this->theme_slug ) {
-			return $return;
+	/**
+	 * Download the theme package and verify its SHA-256 before WordPress unpacks it.
+	 *
+	 * @param false|string|WP_Error $reply      Previous filter value.
+	 * @param string                $package    Package URL.
+	 * @param WP_Upgrader           $upgrader   Upgrader instance.
+	 * @param array                 $hook_extra Extra update context.
+	 * @return false|string|WP_Error
+	 */
+	public function download_and_verify_package( $reply, $package, $upgrader, $hook_extra ) {
+		unset( $upgrader );
+
+		if ( empty( $hook_extra['theme'] ) || $this->theme_slug !== $hook_extra['theme'] ) {
+			return $reply;
 		}
 
-		$expected_hash = get_transient( 'scam_dev_updater_sha256' );
-		if ( ! $expected_hash ) {
-			return new \WP_Error( 'missing_hash', 'Обновление отклонено: отсутствует контрольная сумма.' );
+		if ( ! $this->is_allowed_package_url( $package ) ) {
+			return new WP_Error(
+				'scam_dev_update_host',
+				__( 'Обновление отклонено: недоверенный адрес пакета.', 'scam-dev' )
+			);
 		}
 
-		$temp_files = isset( $hook_extra['temp_files'] ) ? $hook_extra['temp_files'] : array();
-		$package    = isset( $temp_files['package'] ) ? $temp_files['package'] : '';
+		$expected_hash = $this->get_expected_hash_for_package( $package );
 
-		if ( ! $package || ! file_exists( $package ) ) {
-			return new \WP_Error( 'package_not_found', 'Обновление отклонено: файл пакета не найден.' );
+		if ( is_wp_error( $expected_hash ) ) {
+			return $expected_hash;
 		}
 
-		$actual_hash = hash_file( 'sha256', $package );
-		if ( $actual_hash !== $expected_hash ) {
-			@unlink( $package );
-			delete_transient( 'scam_dev_updater_sha256' );
-			return new \WP_Error( 'hash_mismatch', 'Обновление отклонено: контрольная сумма не совпадает.' );
+		if ( is_string( $reply ) && is_readable( $reply ) ) {
+			$temp_file = $reply;
+		} elseif ( false === $reply ) {
+			if ( ! function_exists( 'download_url' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+			}
+
+			$temp_file = download_url( $package, 300 );
+
+			if ( is_wp_error( $temp_file ) ) {
+				return $temp_file;
+			}
+		} else {
+			return $reply;
 		}
 
-		delete_transient( 'scam_dev_updater_sha256' );
-		return $return;
+		$actual_hash = hash_file( 'sha256', $temp_file );
+
+		if ( ! is_string( $actual_hash )
+			|| ! hash_equals( $expected_hash, $actual_hash )
+		) {
+			wp_delete_file( $temp_file );
+			delete_site_transient( $this->get_hash_transient_key( $package ) );
+
+			return new WP_Error(
+				'scam_dev_update_hash_mismatch',
+				__( 'Обновление отклонено: контрольная сумма пакета не совпадает.', 'scam-dev' )
+			);
+		}
+
+		delete_site_transient( $this->get_hash_transient_key( $package ) );
+
+		return $temp_file;
 	}
 
-	public function auto_update( $update, $item ) {
-		return $update;
+
+	/**
+	 * Return a verified package hash, refreshing the signed manifest if needed.
+	 *
+	 * @param string $package Package URL.
+	 * @return string|WP_Error
+	 */
+	private function get_expected_hash_for_package( $package ) {
+		$key             = $this->get_hash_transient_key( $package );
+		$expected_hash   = get_site_transient( $key );
+		$valid_hash      = is_string( $expected_hash )
+			&& (bool) preg_match( '/^[a-f0-9]{64}$/', $expected_hash );
+
+		if ( $valid_hash ) {
+			return $expected_hash;
+		}
+
+		$data = $this->fetch_verified_manifest();
+
+		if ( is_wp_error( $data ) ) {
+			return new WP_Error(
+				'scam_dev_update_manifest_refresh',
+				__( 'Не удалось повторно проверить манифест обновления.', 'scam-dev' ),
+				$data
+			);
+		}
+
+		$manifest_package = isset( $data['download_url'] )
+			? esc_url_raw( $data['download_url'] )
+			: '';
+		$manifest_hash = isset( $data['sha256'] )
+			? strtolower( (string) $data['sha256'] )
+			: '';
+
+		if ( $package !== $manifest_package
+			|| ! $this->is_allowed_package_url( $manifest_package )
+			|| ! preg_match( '/^[a-f0-9]{64}$/', $manifest_hash )
+		) {
+			return new WP_Error(
+				'scam_dev_update_package_not_in_manifest',
+				__( 'Пакет не соответствует подписанному манифесту.', 'scam-dev' )
+			);
+		}
+
+		set_site_transient( $key, $manifest_hash, 12 * HOUR_IN_SECONDS );
+
+		return $manifest_hash;
+	}
+
+	/**
+	 * Fetch and verify the signed update manifest.
+	 *
+	 * @return array|WP_Error
+	 */
+	private function fetch_verified_manifest() {
+		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
+			return new WP_Error(
+				'scam_dev_update_sodium_missing',
+				__( 'Модуль sodium недоступен.', 'scam-dev' )
+			);
+		}
+
+		if ( ! defined( 'SCAM_DEV_UPDATE_PUBLIC_KEY' ) ) {
+			return new WP_Error(
+				'scam_dev_update_key_missing',
+				__( 'Публичный ключ обновлений не настроен.', 'scam-dev' )
+			);
+		}
+
+		$manifest_host   = wp_parse_url( $this->manifest_url, PHP_URL_HOST );
+		$manifest_scheme = wp_parse_url( $this->manifest_url, PHP_URL_SCHEME );
+
+		if ( 'https' !== $manifest_scheme || $this->allowed_host !== $manifest_host ) {
+			return new WP_Error(
+				'scam_dev_update_manifest_url',
+				__( 'Некорректный URL манифеста обновлений.', 'scam-dev' )
+			);
+		}
+
+		$response = wp_safe_remote_get(
+			$this->manifest_url,
+			array(
+				'timeout'             => 10,
+				'redirection'         => 0,
+				'limit_response_size' => 65536,
+				'headers'             => array(
+					'Accept' => 'application/json',
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			return new WP_Error(
+				'scam_dev_update_manifest_status',
+				__( 'Сервер обновлений вернул неожиданный статус.', 'scam-dev' )
+			);
+		}
+
+		$manifest = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( ! is_array( $manifest )
+			|| empty( $manifest['payload'] )
+			|| empty( $manifest['signature'] )
+		) {
+			return new WP_Error(
+				'scam_dev_update_manifest_format',
+				__( 'Некорректный формат манифеста обновлений.', 'scam-dev' )
+			);
+		}
+
+		$payload    = base64_decode( (string) $manifest['payload'], true );
+		$signature  = base64_decode( (string) $manifest['signature'], true );
+		$public_key = base64_decode(
+			(string) SCAM_DEV_UPDATE_PUBLIC_KEY,
+			true
+		);
+
+		if ( false === $payload
+			|| false === $signature
+			|| false === $public_key
+			|| SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES !== strlen( $public_key )
+			|| SODIUM_CRYPTO_SIGN_BYTES !== strlen( $signature )
+		) {
+			return new WP_Error(
+				'scam_dev_update_manifest_encoding',
+				__( 'Некорректная кодировка подписи обновления.', 'scam-dev' )
+			);
+		}
+
+		if ( ! sodium_crypto_sign_verify_detached( $signature, $payload, $public_key ) ) {
+			return new WP_Error(
+				'scam_dev_update_bad_signature',
+				__( 'Подпись обновления не прошла проверку.', 'scam-dev' )
+			);
+		}
+
+		$data = json_decode( $payload, true );
+
+		if ( ! is_array( $data ) ) {
+			return new WP_Error(
+				'scam_dev_update_payload',
+				__( 'Подписанные данные обновления повреждены.', 'scam-dev' )
+			);
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Validate a package URL.
+	 *
+	 * @param string $url Package URL.
+	 * @return bool
+	 */
+	private function is_allowed_package_url( $url ) {
+		if ( ! wp_http_validate_url( $url ) ) {
+			return false;
+		}
+
+		return 'https' === wp_parse_url( $url, PHP_URL_SCHEME )
+			&& $this->allowed_host === wp_parse_url( $url, PHP_URL_HOST )
+			&& null === wp_parse_url( $url, PHP_URL_USER )
+			&& null === wp_parse_url( $url, PHP_URL_PASS )
+			&& null === wp_parse_url( $url, PHP_URL_PORT );
+	}
+
+	/**
+	 * Build a package-specific transient key.
+	 *
+	 * @param string $package Package URL.
+	 * @return string
+	 */
+	private function get_hash_transient_key( $package ) {
+		return 'scam_dev_update_' . hash( 'sha256', $package );
 	}
 }
 

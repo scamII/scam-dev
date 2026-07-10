@@ -1,98 +1,197 @@
 <?php
 /**
  * Plugin Name: Scam Dev Donate Widget
- * Description: Виджет «Поддержать проект» с QR-кодом для доната через Т-Банк.
- * Version: 1.0.0
+ * Description: Локальный виджет и shortcode для поддержки проекта через Т-Банк.
+ * Version: 1.3.0
  * Requires at least: 6.5
  * Requires PHP: 8.0
  * Author: Scam Dev
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: scam-dev
+ * Text Domain: scam-dev-donate-widget
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Scam_Dev_Donate_Widget extends WP_Widget {
+define( 'SCAM_DEV_DONATE_VERSION', '1.3.0' );
+define( 'SCAM_DEV_DONATE_URL', 'https://tbank.ru/cf/2x90jZaUieT' );
 
+/**
+ * Enqueue the small, theme-independent stylesheet.
+ */
+function scam_dev_donate_enqueue_assets() {
+	$path = plugin_dir_path( __FILE__ ) . 'assets/donate.css';
+
+	wp_enqueue_style(
+		'scam-dev-donate',
+		plugins_url( 'assets/donate.css', __FILE__ ),
+		array(),
+		is_readable( $path ) ? filemtime( $path ) : SCAM_DEV_DONATE_VERSION
+	);
+}
+add_action( 'wp_enqueue_scripts', 'scam_dev_donate_enqueue_assets' );
+
+/**
+ * Render a donation block.
+ *
+ * @param bool $widget Whether the block is used in a widget.
+ * @param string $text Optional copy.
+ * @return string
+ */
+function scam_dev_donate_render( $widget = false, $text = '' ) {
+	$text = $text ?: __( 'Проект существует благодаря сообществу. Помогите серверу жить.', 'scam-dev-donate-widget' );
+
+	ob_start();
+	?>
+	<div class="scamdev-donate<?php echo $widget ? ' scamdev-donate--widget' : ''; ?>">
+		<?php if ( $widget ) : ?>
+			<img src="<?php echo esc_url( plugins_url( 'assets/tbank-qr.svg', __FILE__ ) ); ?>"
+				class="scamdev-donate__qr"
+				alt="<?php esc_attr_e( 'QR-код для поддержки через Т-Банк', 'scam-dev-donate-widget' ); ?>"
+				width="130" height="130" loading="lazy">
+		<?php endif; ?>
+
+		<p class="scamdev-donate__copy">
+			<?php echo esc_html( $text ); ?>
+		</p>
+
+		<a href="<?php echo esc_url( SCAM_DEV_DONATE_URL ); ?>"
+			class="scamdev-donate__button"
+			target="_blank"
+			rel="noopener noreferrer">
+			<span aria-hidden="true">♥</span>
+			<?php esc_html_e( 'Поддержать', 'scam-dev-donate-widget' ); ?>
+		</a>
+	</div>
+	<?php
+	return (string) ob_get_clean();
+}
+
+/**
+ * Inline donation shortcode.
+ *
+ * @param array $attributes Shortcode attributes.
+ * @return string
+ */
+function scam_dev_donate_shortcode( $attributes ) {
+	$attributes = shortcode_atts(
+		array(
+			'text' => '',
+		),
+		$attributes,
+		'scamdev_donate_inline'
+	);
+
+	return scam_dev_donate_render(
+		false,
+		sanitize_text_field( $attributes['text'] )
+	);
+}
+add_shortcode( 'scamdev_donate_inline', 'scam_dev_donate_shortcode' );
+
+/**
+ * Donation widget.
+ */
+class Scam_Dev_Donate_Project_Widget extends WP_Widget {
+
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		parent::__construct(
 			'scamdev_donate',
-			'Поддержать проект',
-			array( 'description' => 'Кнопка и QR-код для доната через Т-Банк' )
+			__( 'Поддержать проект', 'scam-dev-donate-widget' ),
+			array(
+				'description' => __( 'Локальный QR-код и ссылка для поддержки.', 'scam-dev-donate-widget' ),
+			)
 		);
 	}
 
+	/**
+	 * Render widget.
+	 *
+	 * @param array $args Widget wrapper arguments.
+	 * @param array $instance Widget settings.
+	 */
 	public function widget( $args, $instance ) {
-		$title = ! empty( $instance['title'] ) ? $instance['title'] : 'Поддержать проект';
-		$text  = ! empty( $instance['text'] ) ? $instance['text'] : 'Помогите серверу жить';
+		$title = ! empty( $instance['title'] )
+			? $instance['title']
+			: __( 'Поддержать проект', 'scam-dev-donate-widget' );
+		$text  = ! empty( $instance['text'] )
+			? $instance['text']
+			: __( 'Помогите серверу жить.', 'scam-dev-donate-widget' );
 
-		$donate_url = 'https://tbank.ru/cf/2x90jZaUieT';
+		echo wp_kses_post( $args['before_widget'] );
 
-		echo $args['before_widget'];
 		if ( $title ) {
-			echo $args['before_title'] . esc_html( $title ) . $args['after_title'];
+			echo wp_kses_post( $args['before_title'] );
+			echo esc_html( $title );
+			echo wp_kses_post( $args['after_title'] );
 		}
-		?>
-		<div class="glass" style="padding:1.25rem;text-align:center;border-left:3px solid var(--color-accent)">
-			<p style="margin:0 0 1rem;color:var(--color-text-secondary);font-size:0.85rem;line-height:1.5">
-				<?php echo esc_html( $text ); ?>
-			</p>
-			<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=<?php echo urlencode( $donate_url ); ?>"
-				alt="QR-код Т-Банк" width="130" height="130"
-				style="display:block;margin:0 auto 1rem;border-radius:12px;background:#fff;padding:10px;box-shadow:0 4px 24px rgba(0,0,0,0.25)">
-			<a href="<?php echo esc_url( $donate_url ); ?>" target="_blank" rel="noopener"
-				style="display:inline-flex;align-items:center;justify-content:center;gap:6px;
-						background:var(--color-accent,#ff5743);color:#19253b;font-weight:600;
-						font-size:0.875rem;padding:0.625rem 1.75rem;border-radius:9999px;
-						text-decoration:none;white-space:nowrap;transition:all 0.25s"
-				onmouseover="this.style.boxShadow='0 0 24px color-mix(in srgb, var(--color-accent) 50%, transparent)';this.style.transform='translateY(-1px)'"
-				onmouseout="this.style.boxShadow='none';this.style.transform='none'">
-				<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-					<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-				</svg>
-				<?php esc_html_e( 'Поддержать', 'scam-dev' ); ?>
-			</a>
-			<p style="margin:0.75rem 0 0;font-size:0.7rem;color:var(--color-text-secondary);opacity:0.5">
-				<?php esc_html_e( 'через Т-Банк', 'scam-dev' ); ?>
-			</p>
-		</div>
-		<?php
-		echo $args['after_widget'];
+
+		echo scam_dev_donate_render( true, $text ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses_post( $args['after_widget'] );
 	}
 
+	/**
+	 * Render admin form.
+	 *
+	 * @param array $instance Widget settings.
+	 */
 	public function form( $instance ) {
-		$title = ! empty( $instance['title'] ) ? $instance['title'] : '';
-		$text  = ! empty( $instance['text'] ) ? $instance['text'] : '';
+		$title = isset( $instance['title'] ) ? $instance['title'] : '';
+		$text  = isset( $instance['text'] ) ? $instance['text'] : '';
 		?>
 		<p>
-			<label for="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>">Заголовок:</label>
-			<input class="widefat" id="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>"
-				name="<?php echo esc_attr( $this->get_field_name( 'title' ) ); ?>" type="text"
+			<label for="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>">
+				<?php esc_html_e( 'Заголовок:', 'scam-dev-donate-widget' ); ?>
+			</label>
+			<input class="widefat"
+				id="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>"
+				name="<?php echo esc_attr( $this->get_field_name( 'title' ) ); ?>"
+				type="text"
 				value="<?php echo esc_attr( $title ); ?>">
 		</p>
 		<p>
-			<label for="<?php echo esc_attr( $this->get_field_id( 'text' ) ); ?>">Текст:</label>
-			<input class="widefat" id="<?php echo esc_attr( $this->get_field_id( 'text' ) ); ?>"
-				name="<?php echo esc_attr( $this->get_field_name( 'text' ) ); ?>" type="text"
+			<label for="<?php echo esc_attr( $this->get_field_id( 'text' ) ); ?>">
+				<?php esc_html_e( 'Текст:', 'scam-dev-donate-widget' ); ?>
+			</label>
+			<input class="widefat"
+				id="<?php echo esc_attr( $this->get_field_id( 'text' ) ); ?>"
+				name="<?php echo esc_attr( $this->get_field_name( 'text' ) ); ?>"
+				type="text"
 				value="<?php echo esc_attr( $text ); ?>">
 		</p>
 		<?php
 	}
 
+	/**
+	 * Sanitize settings.
+	 *
+	 * @param array $new_instance New settings.
+	 * @param array $old_instance Previous settings.
+	 * @return array
+	 */
 	public function update( $new_instance, $old_instance ) {
-		$instance          = array();
-		$instance['title'] = sanitize_text_field( $new_instance['title'] );
-		$instance['text']  = sanitize_text_field( $new_instance['text'] );
-		return $instance;
+		unset( $old_instance );
+
+		return array(
+			'title' => isset( $new_instance['title'] )
+				? sanitize_text_field( $new_instance['title'] )
+				: '',
+			'text'  => isset( $new_instance['text'] )
+				? sanitize_text_field( $new_instance['text'] )
+				: '',
+		);
 	}
 }
 
-add_action(
-	'widgets_init',
-	function () {
-		register_widget( 'Scam_Dev_Donate_Widget' );
-	}
-);
+/**
+ * Register widget.
+ */
+function scam_dev_donate_register_widget() {
+	register_widget( 'Scam_Dev_Donate_Project_Widget' );
+}
+add_action( 'widgets_init', 'scam_dev_donate_register_widget' );

@@ -1,46 +1,63 @@
 <?xml version="1.0"?>
-<ruleset name="Scam Dev Theme">
-	<description>WordPress Coding Standards for Scam Dev theme.</description>
+<ruleset name="Scam Dev">
+	<description>WordPress and PHP compatibility checks for the theme and bundled plugins.</description>
 
-	<!-- Scan all PHP files -->
-	<file>.</file>
+	<file>functions.php</file>
+	<file>inc</file>
+	<file>template-parts</file>
+	<file>plugins</file>
+	<file>404.php</file>
+	<file>archive.php</file>
+	<file>comments.php</file>
+	<file>footer.php</file>
+	<file>front-page.php</file>
+	<file>header.php</file>
+	<file>index.php</file>
+	<file>page-category-posts.php</file>
+	<file>page.php</file>
+	<file>search.php</file>
+	<file>searchform.php</file>
+	<file>sidebar.php</file>
+	<file>single.php</file>
 
-	<!-- Exclude non-theme directories -->
 	<exclude-pattern>/vendor/</exclude-pattern>
 	<exclude-pattern>/node_modules/</exclude-pattern>
-	<exclude-pattern>/assets/</exclude-pattern>
-	<exclude-pattern>/template-parts/</exclude-pattern>
-	<exclude-pattern>*.min.js</exclude-pattern>
-	<exclude-pattern>*.min.css</exclude-pattern>
+	<exclude-pattern>/build/</exclude-pattern>
+	<exclude-pattern>/.dev/</exclude-pattern>
 
-	<!-- Only check PHP files -->
 	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg name="warning-severity" value="0"/>
+	<arg value="sp"/>
 
-	<!-- Show sniff codes in reports -->
-	<arg value="s"/>
-
-	<!-- Use WordPress as the base standard -->
 	<rule ref="WordPress"/>
 
-	<!--
-		Disable rules conflicting with phpcbf: it adds a blank line between <?php
-		and the file docblock, but WordPress standard forbids it.
-		This is a known tooling conflict (phpcbf Squiz vs WordPress).
-	-->
-	<rule ref="Squiz.WhiteSpace.SuperfluousWhitespace.StartFile">
-		<severity>0</severity>
-	</rule>
-	<rule ref="Squiz.Commenting.FileComment.SpacingAfterOpen">
-		<severity>0</severity>
+	<rule ref="PHPCompatibilityWP">
+		<properties>
+			<property name="testVersion" value="8.0-"/>
+		</properties>
 	</rule>
 
-	<!-- Theme uses custom file naming, not autoloader convention -->
+	<rule ref="Generic.Files.LineLength">
+		<properties>
+			<property name="lineLimit" value="120"/>
+			<property name="absoluteLineLimit" value="160"/>
+		</properties>
+	</rule>
+
 	<rule ref="WordPress.Files.FileName">
 		<severity>0</severity>
 	</rule>
 
-	<!-- WordPress.WP.GlobalVariablesOverride — theme templates may use global overrides -->
 	<rule ref="WordPress.WP.GlobalVariablesOverride">
+		<severity>0</severity>
+	</rule>
+
+	<rule ref="Squiz.WhiteSpace.SuperfluousWhitespace.StartFile">
+		<severity>0</severity>
+	</rule>
+
+	<rule ref="Squiz.Commenting.FileComment.SpacingAfterOpen">
 		<severity>0</severity>
 	</rule>
 </ruleset>

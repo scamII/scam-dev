@@ -1,6 +1,6 @@
 <?php
 /**
- * Matrix Registration handler.
+ * Matrix registration controller and provisioning service.
  *
  * @package Scam_Dev_Matrix
  */
@@ -9,215 +9,572 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Scam_Dev_Matrix_Register {
+/**
+ * Matrix registration controller.
+ */
+final class Scam_Dev_Matrix_Registration_Service {
 
+	/**
+	 * Cache of the registration page.
+	 *
+	 * @var WP_Post|false|null
+	 */
 	private static $registration_page = null;
 
+	/**
+	 * Register hooks.
+	 */
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'handle_registration' ) );
-		add_action( 'after_switch_theme', array( __CLASS__, 'create_registration_page' ) );
-		add_action( 'init', array( __CLASS__, 'maybe_create_registration_page' ) );
+		add_action( 'admin_init', array( __CLASS__, 'maybe_repair_page' ) );
 		add_filter( 'wp_nav_menu_items', array( __CLASS__, 'add_menu_link' ), 10, 2 );
 	}
 
-	private static function get_registration_page() {
+	/**
+	 * Plugin activation.
+	 */
+	public static function activate() {
+		self::create_or_update_registration_page();
+	}
+
+	/**
+	 * Ensure the registration page exists when an administrator visits wp-admin.
+	 */
+	public static function maybe_repair_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$page = self::get_registration_page();
+		$template = $page
+			? get_post_meta( $page->ID, '_wp_page_template', true )
+			: '';
+
+		if ( ! $page || SCAM_DEV_MATRIX_TEMPLATE !== $template ) {
+			self::create_or_update_registration_page();
+		}
+	}
+
+	/**
+	 * Return the registration page.
+	 *
+	 * @return WP_Post|false
+	 */
+	public static function get_registration_page() {
 		if ( null !== self::$registration_page ) {
 			return self::$registration_page;
 		}
 
-		$pages = get_pages(
-			array(
-				'meta_key'   => '_wp_page_template', // phpcs:ignore WordPress.DB.SlowDBQuery
-				'meta_value' => 'page-matrix-register.php', // phpcs:ignore WordPress.DB.SlowDBQuery
-				'number'     => 1,
-			)
-		);
+		$page = get_page_by_path( 'matrix-register', OBJECT, 'page' );
 
-		self::$registration_page = ! empty( $pages ) ? $pages[0] : false;
+		self::$registration_page = $page instanceof WP_Post ? $page : false;
 		return self::$registration_page;
 	}
 
-	public static function create_registration_page() {
+	/**
+	 * Create or update the plugin page.
+	 *
+	 * @return int|WP_Error
+	 */
+	public static function create_or_update_registration_page() {
 		$page = self::get_registration_page();
 
-		if ( ! $page ) {
-			wp_insert_post(
-				array(
-					'post_title'   => 'Matrix Регистрация',
-					'post_name'    => 'matrix-register',
-					'post_content' => '',
-					'post_status'  => 'publish',
-					'post_type'    => 'page',
-					'meta_input'   => array(
-						'_wp_page_template' => 'page-matrix-register.php',
-					),
-				)
+		if ( $page ) {
+			update_post_meta(
+				$page->ID,
+				'_wp_page_template',
+				SCAM_DEV_MATRIX_TEMPLATE
 			);
-			self::$registration_page = null;
+			return $page->ID;
 		}
+
+		$result = wp_insert_post(
+			array(
+				'post_title'   => __( 'Matrix Регистрация', 'scam-dev-matrix' ),
+				'post_name'    => 'matrix-register',
+				'post_content' => '',
+				'post_status'  => 'publish',
+				'post_type'    => 'page',
+				'meta_input'   => array(
+					'_wp_page_template' => SCAM_DEV_MATRIX_TEMPLATE,
+				),
+			),
+			true
+		);
+
+		self::$registration_page = null;
+		return $result;
 	}
 
-	public static function maybe_create_registration_page() {
-		static $checked = false;
-		if ( $checked ) {
-			return;
-		}
-		$checked = true;
-
-		$page = self::get_registration_page();
-
-		if ( ! $page ) {
-			self::create_registration_page();
-		}
-	}
-
+	/**
+	 * Add Matrix links to the primary menu.
+	 *
+	 * @param string   $items Existing menu HTML.
+	 * @param stdClass $args  Menu arguments.
+	 * @return string
+	 */
 	public static function add_menu_link( $items, $args ) {
-		if ( 'primary' !== $args->theme_location ) {
+		if ( empty( $args->theme_location ) || 'primary' !== $args->theme_location ) {
 			return $items;
 		}
 
-		$page = self::get_registration_page();
+		$page         = self::get_registration_page();
+		$register_url = $page
+			? get_permalink( $page )
+			: home_url( '/matrix-register/' );
+		$chat_url     = defined( 'MATRIX_CHAT_URL' )
+			? (string) MATRIX_CHAT_URL
+			: 'https://chat.scam-dev.ru';
 
-		$register_url = $page ? get_permalink( $page ) : home_url( '/matrix-register/' );
-		$chat_url     = 'https://chat.scam-dev.ru';
+		$top_link_classes = implode(
+			' ',
+			array(
+				'block px-4 py-2 rounded-lg text-sm font-medium',
+				'transition-colors text-gray-300 hover:text-white',
+				'hover:bg-slate-500/10',
+			)
+		);
+		$submenu_classes = implode(
+			' ',
+			array(
+				'absolute top-full right-0 w-48 rounded-xl shadow-2xl',
+				'py-2 z-50 hidden group-hover:block',
+				'group-focus-within:block account-submenu',
+			)
+		);
+		$register_classes = implode(
+			' ',
+			array(
+				'block px-4 py-2 text-sm text-coral-400',
+				'hover:text-white hover:bg-slate-500/10',
+			)
+		);
+		$chat_classes = implode(
+			' ',
+			array(
+				'block px-4 py-2 text-sm text-gray-400',
+				'hover:text-white hover:bg-slate-500/10',
+			)
+		);
 
 		$dropdown  = '<li class="relative group">';
-		$dropdown .= '<a href="#" class="block px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-300 hover:text-white hover:bg-slate-500/10" onclick="return false">';
-		$dropdown .= 'Matrix';
-		$dropdown .= '<svg class="inline-block w-3 h-3 ml-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>';
-		$dropdown .= '</a>';
-		$dropdown .= '<ul class="absolute top-full right-0 w-48 rounded-xl shadow-2xl py-2 z-50 hidden group-hover:block" style="background:var(--color-header-bg);backdrop-filter:blur(20px);border:2px solid var(--color-border, rgba(255,255,255,0.08));box-shadow:var(--shadow-md)">';
-		$dropdown .= '<li><a href="' . esc_url( $register_url ) . '" class="block px-4 py-2 text-sm text-coral-400 hover:text-white hover:bg-slate-500/10 transition-colors">Регистрация</a></li>';
-		$dropdown .= '<li><a href="' . esc_url( $chat_url ) . '" class="block px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-slate-500/10 transition-colors" target="_blank" rel="noopener">Вход</a></li>';
-		$dropdown .= '</ul>';
-		$dropdown .= '</li>';
+		$dropdown .= '<a href="' . esc_url( $register_url ) . '"';
+		$dropdown .= ' class="' . esc_attr( $top_link_classes ) . '">';
+		$dropdown .= esc_html__( 'Matrix', 'scam-dev-matrix' );
+		$dropdown .= ' <span aria-hidden="true">▾</span></a>';
+		$dropdown .= '<ul class="' . esc_attr( $submenu_classes ) . '">';
+		$dropdown .= '<li><a href="' . esc_url( $register_url ) . '"';
+		$dropdown .= ' class="' . esc_attr( $register_classes ) . '">';
+		$dropdown .= esc_html__( 'Регистрация', 'scam-dev-matrix' );
+		$dropdown .= '</a></li>';
+		$dropdown .= '<li><a href="' . esc_url( $chat_url ) . '"';
+		$dropdown .= ' class="' . esc_attr( $chat_classes ) . '"';
+		$dropdown .= ' target="_blank" rel="noopener noreferrer">';
+		$dropdown .= esc_html__( 'Вход', 'scam-dev-matrix' );
+		$dropdown .= '</a></li></ul></li>';
 
-		$login_pos = strpos( $items, '>Войти<' );
-		if ( false !== $login_pos ) {
-			$li_start = strrpos( substr( $items, 0, $login_pos ), '<li' );
-			if ( false !== $li_start ) {
-				$items = substr_replace( $items, $dropdown, $li_start, 0 );
-				return $items;
+		$login_position = strpos( $items, '>' . __( 'Войти', 'scam-dev' ) . '<' );
+
+		if ( false !== $login_position ) {
+			$list_item_start = strrpos(
+				substr( $items, 0, $login_position ),
+				'<li'
+			);
+
+			if ( false !== $list_item_start ) {
+				return substr_replace(
+					$items,
+					$dropdown,
+					$list_item_start,
+					0
+				);
 			}
 		}
 
-		$items .= $dropdown;
-		return $items;
+		return $items . $dropdown;
 	}
 
+	/**
+	 * Whether registration is safely enabled.
+	 *
+	 * Registration is closed by default and requires at least one anti-abuse
+	 * mechanism: an invite code or Cloudflare Turnstile.
+	 *
+	 * @return bool
+	 */
+	public static function registration_is_enabled() {
+		$enabled = defined( 'SCAM_DEV_MATRIX_REGISTRATION_ENABLED' )
+			&& true === SCAM_DEV_MATRIX_REGISTRATION_ENABLED;
+
+		return $enabled
+			&& ( self::invite_is_configured() || self::turnstile_is_configured() )
+			&& ! is_wp_error( self::get_matrix_config() );
+	}
+
+	/**
+	 * Whether invite-code validation is configured.
+	 *
+	 * @return bool
+	 */
+	public static function invite_is_configured() {
+		return defined( 'SCAM_DEV_MATRIX_INVITE_CODE' )
+			&& '' !== trim( (string) SCAM_DEV_MATRIX_INVITE_CODE );
+	}
+
+	/**
+	 * Whether Turnstile validation is configured.
+	 *
+	 * @return bool
+	 */
+	public static function turnstile_is_configured() {
+		return defined( 'SCAM_DEV_TURNSTILE_SITE_KEY' )
+			&& defined( 'SCAM_DEV_TURNSTILE_SECRET_KEY' )
+			&& '' !== trim( (string) SCAM_DEV_TURNSTILE_SITE_KEY )
+			&& '' !== trim( (string) SCAM_DEV_TURNSTILE_SECRET_KEY );
+	}
+
+	/**
+	 * Return the public Turnstile site key.
+	 *
+	 * @return string
+	 */
+	public static function get_turnstile_site_key() {
+		return self::turnstile_is_configured()
+			? (string) SCAM_DEV_TURNSTILE_SITE_KEY
+			: '';
+	}
+
+	/**
+	 * Consume one-time form state.
+	 *
+	 * @param string $token Public random state token.
+	 * @return array
+	 */
+	public static function consume_state( $token ) {
+		if ( ! is_string( $token ) || ! preg_match( '/^[a-f0-9]{64}$/', $token ) ) {
+			return array();
+		}
+
+		$key   = self::get_state_key( $token );
+		$state = get_transient( $key );
+		delete_transient( $key );
+
+		return is_array( $state ) ? $state : array();
+	}
+
+	/**
+	 * Handle a public registration POST.
+	 */
 	public static function handle_registration() {
-		if ( ! isset( $_POST['matrix_register'] ) ) {
+		$submitted = isset( $_POST['matrix_register'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			? sanitize_text_field( wp_unslash( $_POST['matrix_register'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			: '';
+
+		if ( '1' !== $submitted ) {
 			return;
 		}
 
-		if ( ! wp_verify_nonce( wp_unslash( $_POST['_wpnonce'] ?? '' ), 'matrix_register' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-			wp_die( 'Ошибка проверки безопасности. Пожалуйста, обновите страницу и попробуйте снова.' );
+		if ( ! self::registration_is_enabled() ) {
+			self::redirect_with_state(
+				array(
+					'errors' => array(
+						__( 'Публичная регистрация сейчас закрыта.', 'scam-dev-matrix' ),
+					),
+				)
+			);
 		}
 
-		$ip       = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-		$rate_key = 'matrix_reg_rate_' . md5( $ip );
-		$attempts = (int) get_transient( $rate_key );
+		$nonce = isset( $_POST['_wpnonce'] )
+			? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) )
+			: '';
 
-		if ( $attempts >= 5 ) {
-			$form_errors = array( 'Слишком много попыток регистрации. Пожалуйста, подождите 15 минут.' );
-			set_transient( 'matrix_register_errors', $form_errors, 60 );
-			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
-			exit;
+		if ( ! wp_verify_nonce( $nonce, 'matrix_register' ) ) {
+			self::audit_log( 'nonce_failed', '', '' );
+			self::redirect_with_state(
+				array(
+					'errors' => array(
+						__( 'Сессия формы истекла. Обновите страницу и повторите попытку.', 'scam-dev-matrix' ),
+					),
+				)
+			);
 		}
 
-		$success_key = 'matrix_reg_success_' . md5( $ip );
-		$successes   = (int) get_transient( $success_key );
-		if ( $successes >= 2 ) {
-			$form_errors = array( 'Лимит регистраций для вашего IP исчерпан. Попробуйте позже или обратитесь к администратору.' );
-			set_transient( 'matrix_register_errors', $form_errors, 60 );
-			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
-			exit;
+		$ip = self::get_request_ip();
+
+		if ( ! $ip ) {
+			self::redirect_with_state(
+				array(
+					'errors' => array(
+						__( 'Не удалось проверить источник запроса.', 'scam-dev-matrix' ),
+					),
+				)
+			);
 		}
 
-		$username         = sanitize_user( wp_unslash( $_POST['mx_username'] ?? '' ) );
-		$password         = wp_unslash( $_POST['mx_password'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-		$password_confirm = wp_unslash( $_POST['mx_password_confirm'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		$ip_hash       = hash_hmac( 'sha256', $ip, wp_salt( 'nonce' ) );
+		$attempt_key   = 'mx_attempt_' . substr( $ip_hash, 0, 40 );
+		$success_key   = 'mx_success_' . substr( $ip_hash, 0, 40 );
+		$attempts      = (int) get_transient( $attempt_key );
+		$successes     = (int) get_transient( $success_key );
+		$attempt_limit = defined( 'SCAM_DEV_MATRIX_ATTEMPT_LIMIT' )
+			? max( 1, (int) SCAM_DEV_MATRIX_ATTEMPT_LIMIT )
+			: 5;
+		$success_limit = defined( 'SCAM_DEV_MATRIX_IP_DAILY_LIMIT' )
+			? max( 1, (int) SCAM_DEV_MATRIX_IP_DAILY_LIMIT )
+			: 2;
 
-		$form_errors = array();
-
-		if ( empty( $username ) || strlen( $username ) < 3 ) {
-			$form_errors[] = 'Имя пользователя должно быть не менее 3 символов.';
+		if ( $attempts >= $attempt_limit ) {
+			self::audit_log( 'rate_limited', $ip_hash, '' );
+			self::redirect_with_state(
+				array(
+					'errors' => array(
+						__( 'Слишком много попыток. Повторите через 15 минут.', 'scam-dev-matrix' ),
+					),
+				)
+			);
 		}
 
-		if ( strlen( $username ) > 64 ) {
-			$form_errors[] = 'Имя пользователя слишком длинное.';
+		set_transient(
+			$attempt_key,
+			$attempts + 1,
+			15 * MINUTE_IN_SECONDS
+		);
+
+		if ( $successes >= $success_limit ) {
+			self::audit_log( 'ip_daily_limit', $ip_hash, '' );
+			self::redirect_with_state(
+				array(
+					'errors' => array(
+						__( 'Дневной лимит регистраций для этого адреса исчерпан.', 'scam-dev-matrix' ),
+					),
+				)
+			);
 		}
 
-		if ( ! preg_match( '/^[a-z0-9._\-]+$/i', $username ) ) {
-			$form_errors[] = 'Имя пользователя может содержать только латинские буквы, цифры, точки, дефисы и подчёркивания.';
+		$global_key   = 'mx_global_' . gmdate( 'Ymd' );
+		$global_count = (int) get_transient( $global_key );
+		$global_limit = defined( 'SCAM_DEV_MATRIX_GLOBAL_DAILY_LIMIT' )
+			? max( 1, (int) SCAM_DEV_MATRIX_GLOBAL_DAILY_LIMIT )
+			: 20;
+
+		if ( $global_count >= $global_limit ) {
+			self::audit_log( 'global_daily_limit', $ip_hash, '' );
+			self::redirect_with_state(
+				array(
+					'errors' => array(
+						__( 'Дневной лимит регистраций исчерпан. Повторите завтра.', 'scam-dev-matrix' ),
+					),
+				)
+			);
 		}
 
-		if ( strlen( $password ) < 8 ) {
-			$form_errors[] = 'Пароль должен быть не менее 8 символов.';
-		}
+		$username = isset( $_POST['mx_username'] )
+			? sanitize_user( wp_unslash( $_POST['mx_username'] ), true )
+			: '';
 
-		if ( strlen( $password ) > 128 ) {
-			$form_errors[] = 'Пароль слишком длинный.';
-		}
+		// Passwords must be compared and forwarded verbatim after nonce validation.
+		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$password = isset( $_POST['mx_password'] )
+			? (string) wp_unslash( $_POST['mx_password'] )
+			: '';
+		$password_confirm = isset( $_POST['mx_password_confirm'] )
+			? (string) wp_unslash( $_POST['mx_password_confirm'] )
+			: '';
+		// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
-		if ( $password !== $password_confirm ) {
-			$form_errors[] = 'Пароли не совпадают.';
-		}
+		$errors = self::validate_form(
+			$username,
+			$password,
+			$password_confirm,
+			$ip
+		);
 
-		if ( empty( wp_unslash( $_POST['mx_tos'] ) ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-			$form_errors[] = 'Необходимо принять условия использования и политику конфиденциальности.';
-		}
-
-		if ( ! empty( $form_errors ) ) {
-			set_transient( 'matrix_register_errors', $form_errors, 60 );
-			set_transient( 'matrix_register_username', $username, 60 );
-			set_transient( $rate_key, $attempts + 1, 15 * MINUTE_IN_SECONDS );
-			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
-			exit;
+		if ( $errors ) {
+			self::audit_log( 'validation_failed', $ip_hash, $username );
+			self::redirect_with_state(
+				array(
+					'errors'   => $errors,
+					'username' => $username,
+				)
+			);
 		}
 
 		$result = self::create_matrix_user( $username, $password );
 
-		set_transient( $rate_key, $attempts + 1, 15 * MINUTE_IN_SECONDS );
-
 		if ( is_wp_error( $result ) ) {
-			set_transient( 'matrix_register_errors', array( $result->get_error_message() ), 60 );
-			set_transient( 'matrix_register_username', $username, 60 );
-			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
-			exit;
+			self::audit_log(
+				'provisioning_failed:' . $result->get_error_code(),
+				$ip_hash,
+				$username
+			);
+			self::redirect_with_state(
+				array(
+					'errors'   => array(
+						__( 'Не удалось завершить регистрацию. Повторите позже или обратитесь к администратору.', 'scam-dev-matrix' ),
+					),
+					'username' => $username,
+				)
+			);
 		}
 
 		set_transient( $success_key, $successes + 1, DAY_IN_SECONDS );
-		set_transient( 'matrix_register_success', true, 60 );
-		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
-		exit;
+		set_transient( $global_key, $global_count + 1, DAY_IN_SECONDS );
+
+		self::audit_log( 'success', $ip_hash, $username );
+		self::redirect_with_state(
+			array(
+				'success'  => true,
+				'username' => $username,
+			)
+		);
 	}
 
-	private static function create_matrix_user( $username, $password ) {
-		$homeserver = defined( 'MATRIX_HOMESERVER_URL' ) ? MATRIX_HOMESERVER_URL : '';
-		$token      = defined( 'MATRIX_ADMIN_TOKEN' ) ? MATRIX_ADMIN_TOKEN : '';
+	/**
+	 * Validate form fields and anti-abuse controls.
+	 *
+	 * @param string $username Matrix localpart.
+	 * @param string $password Password.
+	 * @param string $password_confirm Password confirmation.
+	 * @param string $ip Request IP.
+	 * @return string[]
+	 */
+	private static function validate_form( $username, $password, $password_confirm, $ip ) {
+		$errors = array();
 
-		if ( empty( $homeserver ) || empty( $token ) ) {
-			return new WP_Error( 'config', 'Matrix-сервер не настроен. Обратитесь к администратору сайта.' );
+		if ( strlen( $username ) < 3 || strlen( $username ) > 64 ) {
+			$errors[] = __( 'Имя должно содержать от 3 до 64 символов.', 'scam-dev-matrix' );
 		}
 
-		$domain = wp_parse_url( $homeserver, PHP_URL_HOST );
-		if ( ! $domain ) {
-			return new WP_Error( 'config', 'Неверный URL Matrix-сервера.' );
+		if ( ! preg_match( '/^[a-z0-9._=-]+$/', $username ) ) {
+			$errors[] = __( 'Используйте строчные латинские буквы, цифры, точки, дефисы, подчёркивания и знак равенства.', 'scam-dev-matrix' );
 		}
 
-		$user_id  = '@' . $username . ':' . $domain;
-		$api_base = untrailingslashit( $homeserver ) . '/_synapse/admin';
+		if ( strlen( $password ) < 12 || strlen( $password ) > 128 ) {
+			$errors[] = __( 'Пароль должен содержать от 12 до 128 символов.', 'scam-dev-matrix' );
+		}
 
-		$response = wp_remote_request(
-			$api_base . '/v2/users/' . rawurlencode( $user_id ),
+		if ( $password !== $password_confirm ) {
+			$errors[] = __( 'Пароли не совпадают.', 'scam-dev-matrix' );
+		}
+
+		$terms_accepted = isset( $_POST['mx_tos'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			? sanitize_text_field( wp_unslash( $_POST['mx_tos'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			: '';
+
+		if ( '1' !== $terms_accepted ) {
+			$errors[] = __( 'Необходимо принять условия использования и политику конфиденциальности.', 'scam-dev-matrix' );
+		}
+
+		if ( self::invite_is_configured() ) {
+			// The shared secret must be compared verbatim after controller nonce validation.
+			// phpcs:disable WordPress.Security.NonceVerification.Missing
+			// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$invite = isset( $_POST['mx_invite_code'] )
+				? trim( (string) wp_unslash( $_POST['mx_invite_code'] ) )
+				: '';
+			// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+			if ( strlen( $invite ) > 128
+				|| ! hash_equals( (string) SCAM_DEV_MATRIX_INVITE_CODE, $invite )
+			) {
+				$errors[] = __( 'Недействительный код приглашения.', 'scam-dev-matrix' );
+			}
+		}
+
+		if ( self::turnstile_is_configured()
+			&& ! self::verify_turnstile( $ip )
+		) {
+			$errors[] = __( 'Проверка защиты от автоматических регистраций не пройдена.', 'scam-dev-matrix' );
+		}
+
+		return $errors;
+	}
+
+	/**
+	 * Verify a Cloudflare Turnstile response.
+	 *
+	 * @param string $ip Request IP.
+	 * @return bool
+	 */
+	private static function verify_turnstile( $ip ) {
+		// Nonce validation is performed by the registration controller.
+		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		$token = isset( $_POST['cf-turnstile-response'] )
+			? sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) )
+			: '';
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		if ( ! $token || strlen( $token ) > 2048 ) {
+			return false;
+		}
+
+		$response = wp_safe_remote_post(
+			'https://challenges.cloudflare.com/turnstile/v0/siteverify',
 			array(
-				'method'  => 'PUT',
-				'headers' => array(
-					'Authorization' => 'Bearer ' . $token,
-					'Content-Type'  => 'application/json',
+				'timeout'     => 5,
+				'redirection' => 0,
+				'body'        => array(
+					'secret'   => (string) SCAM_DEV_TURNSTILE_SECRET_KEY,
+					'response' => $token,
+					'remoteip' => $ip,
 				),
-				'body'    => wp_json_encode(
+			)
+		);
+
+		if ( is_wp_error( $response )
+			|| 200 !== wp_remote_retrieve_response_code( $response )
+		) {
+			return false;
+		}
+
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( ! is_array( $body ) || empty( $body['success'] ) ) {
+			return false;
+		}
+
+		$expected_host = defined( 'SCAM_DEV_TURNSTILE_EXPECTED_HOST' )
+			? strtolower( trim( (string) SCAM_DEV_TURNSTILE_EXPECTED_HOST ) )
+			: strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
+		$response_host = isset( $body['hostname'] )
+			? strtolower( sanitize_text_field( $body['hostname'] ) )
+			: '';
+
+		return '' !== $expected_host && hash_equals( $expected_host, $response_host );
+	}
+
+	/**
+	 * Provision a Matrix account through the Synapse v2 Admin API.
+	 *
+	 * @param string $username Matrix localpart.
+	 * @param string $password Password.
+	 * @return array|WP_Error
+	 */
+	private static function create_matrix_user( $username, $password ) {
+		$config = self::get_matrix_config();
+
+		if ( is_wp_error( $config ) ) {
+			return $config;
+		}
+
+		$user_id = '@' . $username . ':' . $config['domain'];
+		$url     = $config['homeserver']
+			. '/_synapse/admin/v2/users/'
+			. rawurlencode( $user_id );
+
+		$response = wp_safe_remote_request(
+			$url,
+			array(
+				'method'      => 'PUT',
+				'timeout'     => 10,
+				'redirection' => 0,
+				'headers'     => array(
+					'Authorization' => 'Bearer ' . $config['token'],
+					'Content-Type'  => 'application/json',
+					'Accept'        => 'application/json',
+				),
+				'body'        => wp_json_encode(
 					array(
 						'password'    => $password,
 						'displayname' => $username,
@@ -225,81 +582,176 @@ class Scam_Dev_Matrix_Register {
 						'deactivated' => false,
 					)
 				),
-				'timeout' => 15,
 			)
 		);
 
 		if ( is_wp_error( $response ) ) {
-			return new WP_Error( 'network', 'Ошибка связи с Matrix-сервером: ' . $response->get_error_message() );
+			self::log_internal_error( 'matrix_http', $response->get_error_message() );
+			return new WP_Error( 'matrix_network' );
 		}
 
 		$status = wp_remote_retrieve_response_code( $response );
 		$body   = json_decode( wp_remote_retrieve_body( $response ), true );
 
-		if ( 400 === $status && isset( $body['errcode'] ) && 'M_USER_IN_USE' === $body['errcode'] ) {
-			return new WP_Error( 'exists', 'Пользователь с таким именем уже существует.' );
+		if ( 200 !== $status && 201 !== $status ) {
+			$error_code = is_array( $body ) && isset( $body['errcode'] )
+				? sanitize_key( $body['errcode'] )
+				: 'unknown';
+			self::log_internal_error(
+				'matrix_status',
+				'HTTP ' . $status . ' errcode=' . $error_code
+			);
+			return new WP_Error( 'matrix_status' );
 		}
 
-		if ( 200 === $status || 201 === $status ) {
-			return $body;
+		if ( ! is_array( $body ) ) {
+			self::log_internal_error( 'matrix_json', 'Malformed JSON response.' );
+			return new WP_Error( 'matrix_json' );
 		}
 
-		if ( 404 !== $status && 405 !== $status && 501 !== $status ) {
-			return new WP_Error( 'server', 'Не удалось создать пользователя. Код ответа сервера: ' . $status );
+		return $body;
+	}
+
+	/**
+	 * Validate Matrix configuration.
+	 *
+	 * @return array|WP_Error
+	 */
+	private static function get_matrix_config() {
+		$homeserver = defined( 'MATRIX_HOMESERVER_URL' )
+			? untrailingslashit( (string) MATRIX_HOMESERVER_URL )
+			: '';
+		$token = defined( 'MATRIX_ADMIN_TOKEN' )
+			? trim( (string) MATRIX_ADMIN_TOKEN )
+			: '';
+
+		$scheme = wp_parse_url( $homeserver, PHP_URL_SCHEME );
+		$host   = wp_parse_url( $homeserver, PHP_URL_HOST );
+		$port   = wp_parse_url( $homeserver, PHP_URL_PORT );
+		$user   = wp_parse_url( $homeserver, PHP_URL_USER );
+		$pass   = wp_parse_url( $homeserver, PHP_URL_PASS );
+
+		if ( ! $token
+			|| 'https' !== $scheme
+			|| ! $host
+			|| null !== $port
+			|| null !== $user
+			|| null !== $pass
+		) {
+			return new WP_Error( 'matrix_config' );
 		}
 
-		$response = wp_remote_request(
-			$api_base . '/v2/users/' . rawurlencode( $user_id ),
-			array(
-				'method'  => 'PUT',
-				'headers' => array(
-					'Authorization' => 'Bearer ' . $token,
-					'Content-Type'  => 'application/json',
-				),
-				'body'    => wp_json_encode( array( 'displayname' => $username ) ),
-				'timeout' => 15,
-			)
+		$expected_host = defined( 'MATRIX_EXPECTED_HOST' )
+			? strtolower( trim( (string) MATRIX_EXPECTED_HOST ) )
+			: '';
+
+		if ( ! $expected_host || $expected_host !== strtolower( $host ) ) {
+			return new WP_Error( 'matrix_host' );
+		}
+
+		return array(
+			'homeserver' => $homeserver,
+			'domain'     => strtolower( $host ),
+			'token'      => $token,
+		);
+	}
+
+	/**
+	 * Return a validated direct peer IP.
+	 *
+	 * Proxies must be configured at the web-server layer so REMOTE_ADDR is the
+	 * real client address. Untrusted forwarding headers are intentionally ignored.
+	 *
+	 * @return string
+	 */
+	private static function get_request_ip() {
+		$ip = isset( $_SERVER['REMOTE_ADDR'] )
+			? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
+			: '';
+
+		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '';
+	}
+
+	/**
+	 * Store a one-time state and redirect to the known registration page.
+	 *
+	 * @param array $state Form state.
+	 */
+	private static function redirect_with_state( $state ) {
+		try {
+			$token = bin2hex( random_bytes( 32 ) );
+		} catch ( Throwable ) {
+			$token = hash_hmac(
+				'sha256',
+				wp_generate_uuid4() . wp_generate_password( 64, true, true ),
+				wp_salt( 'auth' )
+			);
+		}
+
+		set_transient(
+			self::get_state_key( $token ),
+			$state,
+			2 * MINUTE_IN_SECONDS
 		);
 
-		if ( is_wp_error( $response ) ) {
-			return new WP_Error( 'network', 'Ошибка связи с Matrix-сервером: ' . $response->get_error_message() );
-		}
+		$page = self::get_registration_page();
+		$url  = $page ? get_permalink( $page ) : home_url( '/matrix-register/' );
+		$url  = add_query_arg( 'matrix_state', $token, $url );
 
-		$status = wp_remote_retrieve_response_code( $response );
-		$body   = json_decode( wp_remote_retrieve_body( $response ), true );
+		wp_safe_redirect( $url, 303 );
+		exit;
+	}
 
-		if ( 400 === $status && isset( $body['errcode'] ) && 'M_USER_IN_USE' === $body['errcode'] ) {
-			return new WP_Error( 'exists', 'Пользователь с таким именем уже существует.' );
-		}
+	/**
+	 * Build a one-time state key.
+	 *
+	 * @param string $token Public random token.
+	 * @return string
+	 */
+	private static function get_state_key( $token ) {
+		return 'mx_state_' . hash_hmac(
+			'sha256',
+			$token,
+			wp_salt( 'auth' )
+		);
+	}
 
-		if ( 200 !== $status && 201 !== $status ) {
-			return new WP_Error( 'server', 'Не удалось создать пользователя. Код ответа сервера: ' . $status );
-		}
-
-		$response = wp_remote_request(
-			$api_base . '/v1/reset_password/' . rawurlencode( $user_id ),
-			array(
-				'method'  => 'POST',
-				'headers' => array(
-					'Authorization' => 'Bearer ' . $token,
-					'Content-Type'  => 'application/json',
-				),
-				'body'    => wp_json_encode( array( 'new_password' => $password ) ),
-				'timeout' => 15,
-			)
+	/**
+	 * Emit a privacy-preserving audit event.
+	 *
+	 * @param string $result Result code.
+	 * @param string $ip_hash Hashed IP.
+	 * @param string $username Matrix username.
+	 */
+	private static function audit_log( $result, $ip_hash, $username ) {
+		$record = array(
+			'timestamp' => gmdate( 'c' ),
+			'result'    => sanitize_key( $result ),
+			'ip_hash'   => $ip_hash ? substr( $ip_hash, 0, 16 ) : '',
+			'username'  => sanitize_user( $username, true ),
 		);
 
-		if ( is_wp_error( $response ) ) {
-			return new WP_Error( 'password', 'Пользователь создан, но не удалось установить пароль. Пожалуйста, свяжитесь с администратором.' );
-		}
+		do_action( 'scam_dev_matrix_audit', $record );
 
-		$status = wp_remote_retrieve_response_code( $response );
-		if ( 200 !== $status && 201 !== $status ) {
-			return new WP_Error( 'password', 'Пользователь создан, но не удалось установить пароль (код ' . $status . '). Свяжитесь с администратором.' );
+		if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+			error_log( 'scam-dev-matrix ' . wp_json_encode( $record ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		}
+	}
 
-		return json_decode( wp_remote_retrieve_body( $response ), true );
+	/**
+	 * Log a detailed internal error without exposing it to visitors.
+	 *
+	 * @param string $code Internal code.
+	 * @param string $message Internal detail.
+	 */
+	private static function log_internal_error( $code, $message ) {
+		if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				'scam-dev-matrix internal '
+				. sanitize_key( $code )
+				. ': '
+				. sanitize_text_field( $message )
+			);
+		}
 	}
 }
-
-Scam_Dev_Matrix_Register::init();
