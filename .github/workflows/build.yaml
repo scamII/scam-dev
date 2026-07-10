@@ -58,7 +58,22 @@ jobs:
         run: exit 1
 
       - name: CSS lint
-        run: npm run lint:css:ci
+        id: css_lint
+        continue-on-error: true
+        run: npm run lint:css:ci 2>&1 | tee css-lint.log
+
+      - name: Upload CSS lint report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: css-lint-report
+          path: css-lint.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce CSS lint
+        if: steps.css_lint.outcome == 'failure'
+        run: exit 1
 
       - name: Static regression tests
         run: npm run test:static
