@@ -1,64 +1,44 @@
-# Участие в разработке (Contributing)
+# Участие в разработке
 
-Спасибо за интерес к проекту Scam Dev! Мы приветствуем вклад сообщества.
+## Рабочий процесс
 
-## Как помочь
+1. Создайте ветку от актуального `main`.
+2. Внесите небольшие тематические изменения.
+3. Добавьте или обновите regression checks.
+4. Выполните полный quality gate.
+5. Создайте Pull Request в `main`.
 
-### Сообщить об ошибке
+```bash
+npm ci
+composer install
+make quality
+make package
+```
 
-1. Проверьте, нет ли уже похожей задачи в [Issues](https://github.com/scamii/scam-dev/issues)
-2. Создайте новый issue с чётким описанием:
-   - Шаги для воспроизведения
-   - Ожидаемое поведение
-   - Фактическое поведение
-   - Версии WordPress, PHP, браузера
+## Требования к изменениям
 
-### Предложить улучшение
+- PHP: WordPress Coding Standards, PHP 8.0+.
+- JavaScript: ESLint-конфигурация `@wordpress/scripts`.
+- CSS: Stylelint для изменённых styles.
+- State-changing WordPress actions: nonce и capability check.
+- Все динамические данные экранируются в момент вывода.
+- Внешние URL ограничиваются HTTPS и ожидаемыми hosts.
+- Секреты не добавляются в repository, logs, screenshots и fixtures.
+- Generated `assets/js/app.js` и `build/` не коммитятся.
+- Плагины должны владеть собственными assets и не зависеть от handles темы.
 
-Откройте issue с меткой `enhancement` и опишите:
-- Какую проблему решает предложение
-- Как должно работать решение
+## Conventional Commits
 
-### Отправить код (Pull Request)
+- `feat:` — новая функция;
+- `fix:` — исправление;
+- `security:` — security hardening;
+- `refactor:` — изменение структуры;
+- `test:` — проверки;
+- `docs:` — документация;
+- `chore:` — обслуживание.
 
-1. Форкните репозиторий
-2. Создайте ветку: `git checkout -b feature/название-фичи`
-3. Внесите изменения
-4. Убедитесь, что код проходит линтинг:
-   ```bash
-   npm run lint:css
-   npm run lint:js
-   ```
-5. Закоммитьте: `git commit -m "feat: описание"`
-6. Запушьте: `git push origin feature/название-фичи`
-7. Создайте Pull Request на GitHub в ветку `main`
+## Сообщение об ошибке
 
-## Соглашение о коммитах
+Обычные ошибки можно создавать в GitHub Issues репозитория `scamII/scam-dev`.
 
-Используем [Conventional Commits](https://www.conventionalcommits.org/):
-
-- `feat:` — новая функция
-- `fix:` — исправление ошибки
-- `docs:` — документация
-- `style:` — форматирование, отступы
-- `refactor:` — рефакторинг без изменения поведения
-- `perf:` — оптимизация производительности
-- `test:` — тесты
-- `chore:` — рутинные задачи
-
-## Стиль кода
-
-- **PHP**: WordPress Coding Standards
-- **JavaScript**: ESLint (конфигурация `@wordpress/scripts`)
-- **CSS**: StyleLint (конфигурация `@wordpress/scripts`)
-
-## Ветки
-
-- `main` — стабильная версия, готовая к использованию
-- `develop` — ветка разработки
-- `feature/*` — новые функции
-- `fix/*` — исправления
-
-## Обратная связь
-
-Вопросы и обсуждения — в разделе [Issues](https://gitverse.ru/scamii/scam-dev/issues).
+Уязвимости отправляйте только через private GitHub Security Advisory.

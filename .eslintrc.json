@@ -1,7 +1,13 @@
 {
-    "extends": ["@wordpress/eslint-plugin/recommended"],
-    "env": { "browser": true },
-    "rules": {
-        "no-undef": "warn"
-    }
+	"extends": [
+		"@wordpress/eslint-plugin/recommended"
+	],
+	"env": {
+		"browser": true,
+		"es2022": true
+	},
+	"rules": {
+		"no-undef": "error",
+		"react/no-danger": "error"
+	}
 }
