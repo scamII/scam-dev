@@ -13,3 +13,5 @@ start.sh
 .vscode/
 .secrets/
 .gitverse/
+.mimocode/
+.secrets
