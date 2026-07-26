@@ -16,6 +16,7 @@ cp style.css theme.json LICENSE "$TARGET/"
 [[ -f screenshot.png ]] && cp screenshot.png "$TARGET/"
 
 cp -R inc template-parts "$TARGET/"
+[[ -d woocommerce ]] && cp -R woocommerce "$TARGET/"
 cp assets/css/highlight.css assets/css/highlight-dark.css "$TARGET/assets/css/"
 cp assets/js/theme-init.js "$TARGET/assets/js/"
 cp build/*.css "$TARGET/assets/css/"
