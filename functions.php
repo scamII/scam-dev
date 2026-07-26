@@ -153,3 +153,7 @@ function scam_dev_add_account_menu_item( $items, $args ) {
 	return $items;
 }
 add_filter( 'wp_nav_menu_items', 'scam_dev_add_account_menu_item', 10, 2 );
+
+if ( class_exists( 'WooCommerce' ) ) {
+	add_filter( 'woocommerce_enqueue_styles', '__return_false' );
+}

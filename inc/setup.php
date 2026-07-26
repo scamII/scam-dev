@@ -52,6 +52,24 @@ function scam_dev_setup() {
 			'footer'  => esc_html__( 'Меню в подвале', 'scam-dev' ),
 		)
 	);
+
+	if ( class_exists( 'WooCommerce' ) ) {
+		add_theme_support( 'woocommerce', array(
+			'thumbnail_image_width' => 300,
+			'single_image_width'    => 600,
+			'product_grid'          => array(
+				'default_rows'    => 3,
+				'min_rows'        => 1,
+				'max_rows'        => 6,
+				'default_columns' => 3,
+				'min_columns'     => 1,
+				'max_columns'     => 4,
+			),
+		) );
+		add_theme_support( 'wc-product-gallery-zoom' );
+		add_theme_support( 'wc-product-gallery-lightbox' );
+		add_theme_support( 'wc-product-gallery-slider' );
+	}
 }
 add_action( 'after_setup_theme', 'scam_dev_setup' );
 
