@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Scam Dev VK Import
  * Description: Фоновый и ограниченный по ресурсам импорт публикаций из VK в WordPress.
- * Version: 1.3.1
+ * Version: 1.3.2
  * Requires at least: 6.5
  * Requires PHP: 8.0
  * Author: Scam Dev
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SCAM_DEV_VK_IMPORT_VERSION', '1.3.1' );
+define( 'SCAM_DEV_VK_IMPORT_VERSION', '1.3.2' );
 define( 'SCAM_DEV_VK_JOB_INDEX', 'scam_dev_vk_jobs' );
 
 require_once __DIR__ . '/class-vk-import.php';

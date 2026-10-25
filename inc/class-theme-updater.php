@@ -249,9 +249,12 @@ final class Scam_Dev_Theme_Updater {
 	/**
 	 * Fetch and verify the signed update manifest.
 	 *
+	 * Public so the suite updater can reuse the same signed payload for
+	 * plugin updates instead of verifying the manifest a second time.
+	 *
 	 * @return array|WP_Error
 	 */
-	private function fetch_verified_manifest() {
+	public function fetch_verified_manifest() {
 		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
 			return new WP_Error(
 				'scam_dev_update_sodium_missing',
@@ -355,7 +358,7 @@ final class Scam_Dev_Theme_Updater {
 	 * @param string $url Package URL.
 	 * @return bool
 	 */
-	private function is_allowed_package_url( $url ) {
+	public function is_allowed_package_url( $url ) {
 		if ( ! wp_http_validate_url( $url ) ) {
 			return false;
 		}
@@ -378,4 +381,4 @@ final class Scam_Dev_Theme_Updater {
 	}
 }
 
-new Scam_Dev_Theme_Updater();
+$GLOBALS['scam_dev_theme_updater'] = new Scam_Dev_Theme_Updater();

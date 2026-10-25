@@ -94,11 +94,20 @@ trap 'rm -rf "$WORK"' EXIT
 PAYLOAD="$WORK/update-payload.json"
 MANIFEST="$WORK/theme-update.json"
 
-python3 - "$PAYLOAD" "$VERSION" "$DOWNLOAD_URL" "$HASH" <<'PY'
+# Плагины идут в том же подписанном манифесте, что и тема: клиент
+# (inc/class-suite-updater.php) читает ключ "plugins".
+PLUGIN_PAYLOAD_ARGS=()
+for plugin_name in "${PLUGIN_NAMES[@]}"; do
+	PLUGIN_PAYLOAD_ARGS+=( "$plugin_name" "$(sha256sum "$ROOT/$plugin_name.zip" | awk '{print $1}')" )
+done
+
+python3 - "$PAYLOAD" "$VERSION" "$DOWNLOAD_URL" "$HASH" "$SITE_DOMAIN" "${PLUGIN_PAYLOAD_ARGS[@]}" <<'PY'
 import json
 import sys
 
-path, version, download_url, sha256 = sys.argv[1:]
+path, version, download_url, sha256, site_domain = sys.argv[1:6]
+rest = sys.argv[6:]
+
 payload = {
     "download_url": download_url,
     "requires": "6.5",
@@ -107,6 +116,20 @@ payload = {
     "url": "https://github.com/scamII/scam-dev",
     "version": version,
 }
+
+plugins = {}
+for index in range(0, len(rest) - 1, 2):
+    name = rest[index]
+    digest = rest[index + 1]
+    plugins[name] = {
+        "download_url": f"https://{site_domain}/downloads/{name}.zip",
+        "sha256": digest,
+        "version": version,
+    }
+
+if plugins:
+    payload["plugins"] = plugins
+
 with open(path, "w", encoding="utf-8", newline="\n") as handle:
     json.dump(payload, handle, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     handle.write("\n")

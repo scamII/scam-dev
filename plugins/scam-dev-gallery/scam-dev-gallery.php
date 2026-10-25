@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Scam Dev Gallery
  * Description: Галереи изображений с безопасным shortcode, Gutenberg-блоком и доступным lightbox.
- * Version: 1.3.1
+ * Version: 1.3.2
  * Requires at least: 6.5
  * Requires PHP: 8.0
  * Author: Scam Dev
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SCAMDEV_GALLERY_VERSION', '1.3.1' );
+define( 'SCAMDEV_GALLERY_VERSION', '1.3.2' );
 define( 'SCAMDEV_GALLERY_FILE', __FILE__ );
 
 /**

@@ -46,14 +46,19 @@ for plugin_dir in plugins/*/; do
 	plugin_name="$(basename "$plugin_dir")"
 	plugin_zip="$ROOT/$plugin_name.zip"
 	rm -f "$plugin_zip" "$plugin_zip.sha256"
+	# Верхняя папка обязательна: WP_Upgrader::unpack_package() берёт имя
+	# каталога из имени скачанного файла, поэтому zip без папки при
+	# обновлении распаковывается в <slug>-XXXXXX вместо <slug>.
 	(
-		cd "$plugin_dir"
-		zip -qr "$plugin_zip" . \
+		cd "$(dirname "$plugin_dir")"
+		zip -qr "$plugin_zip" "$plugin_name" \
 			-x '*.DS_Store' \
 			-x '*.log' \
-			-x 'tests/*'
+			-x "$plugin_name/tests/*"
 	)
-	sha256sum "$plugin_zip" > "$plugin_zip.sha256"
+	# Только basename: абсолютный путь CI-раннера ломает `sha256sum -c`.
+	( cd "$(dirname "$plugin_zip")" && sha256sum "$(basename "$plugin_zip")" ) \
+		> "$plugin_zip.sha256"
 	PLUGIN_ZIPS+=( "$plugin_zip" )
 done
 
@@ -78,13 +83,16 @@ for plugin_zip in "${PLUGIN_ZIPS[@]}"; do
 	plugin_smoke="$SMOKE/plugins/$plugin_name"
 	mkdir -p "$plugin_smoke"
 	unzip -q "$plugin_zip" -d "$plugin_smoke"
-	[[ -f "$plugin_smoke/$plugin_name.php" ]]
+	[[ -f "$plugin_smoke/$plugin_name/$plugin_name.php" ]]
+	[[ "$(ls "$plugin_smoke")" == "$plugin_name" ]]
 	while IFS= read -r -d '' php_file; do
 		php -l "$php_file" >/dev/null
 	done < <(find "$plugin_smoke" -type f -name '*.php' -print0)
 done
 
-sha256sum "$THEME_ZIP" > "$THEME_ZIP.sha256"
+# Только basename: абсолютный путь CI-раннера ломает `sha256sum -c`.
+( cd "$(dirname "$THEME_ZIP")" && sha256sum "$(basename "$THEME_ZIP")" ) \
+	> "$THEME_ZIP.sha256"
 
 echo "Theme package: $THEME_ZIP"
 echo "Plugin packages:"

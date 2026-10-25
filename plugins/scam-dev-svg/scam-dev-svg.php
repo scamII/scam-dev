@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Scam Dev SVG Support
  * Description: Fail-closed SVG upload validation and sanitization for administrators.
- * Version: 1.3.1
+ * Version: 1.3.2
  * Requires at least: 6.5
  * Requires PHP: 8.0
  * Author: Scam Dev
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SCAM_DEV_SVG_VERSION', '1.3.1' );
+define( 'SCAM_DEV_SVG_VERSION', '1.3.2' );
 define( 'SCAM_DEV_SVG_MAX_BYTES', 1048576 );
 define( 'SCAM_DEV_SVG_MAX_NODES', 5000 );
 

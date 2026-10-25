@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $scam_dev_theme = wp_get_theme( get_template() );
-define( 'SCAM_DEV_VERSION', $scam_dev_theme->get( 'Version' ) ?: '1.3.1' );
+define( 'SCAM_DEV_VERSION', $scam_dev_theme->get( 'Version' ) ?: '1.3.2' );
 unset( $scam_dev_theme );
 
 require_once get_template_directory() . '/inc/setup.php';
@@ -21,6 +21,7 @@ require_once get_template_directory() . '/inc/hero.php';
 require_once get_template_directory() . '/inc/highlightjs.php';
 require_once get_template_directory() . '/inc/breadcrumbs.php';
 require_once get_template_directory() . '/inc/class-theme-updater.php';
+require_once get_template_directory() . '/inc/class-suite-updater.php';
 
 /**
  * Exclude the horses category from the regular blog index.
@@ -153,3 +154,15 @@ function scam_dev_add_account_menu_item( $items, $args ) {
 	return $items;
 }
 add_filter( 'wp_nav_menu_items', 'scam_dev_add_account_menu_item', 10, 2 );
+
+/**
+ * Plugin updates and auto-update policy share the theme's signed manifest.
+ */
+if ( class_exists( 'Scam_Dev_Suite_Updater' ) ) {
+	$scam_dev_theme_updater = isset( $GLOBALS['scam_dev_theme_updater'] )
+		? $GLOBALS['scam_dev_theme_updater']
+		: null;
+
+	new Scam_Dev_Suite_Updater( $scam_dev_theme_updater );
+	unset( $scam_dev_theme_updater );
+}

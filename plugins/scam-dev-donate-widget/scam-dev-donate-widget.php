@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Scam Dev Donate Widget
  * Description: Локальный виджет и shortcode для поддержки проекта через Т-Банк.
- * Version: 1.3.1
+ * Version: 1.3.2
  * Requires at least: 6.5
  * Requires PHP: 8.0
  * Author: Scam Dev
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SCAM_DEV_DONATE_VERSION', '1.3.1' );
+define( 'SCAM_DEV_DONATE_VERSION', '1.3.2' );
 define( 'SCAM_DEV_DONATE_URL', 'https://tbank.ru/cf/2x90jZaUieT' );
 
 /**
