@@ -3,6 +3,7 @@
 @source "../../*.php";
 @source "../../inc/**/*.php";
 @source "../../template-parts/**/*.php";
+@source "../../patterns/**/*.php";
 @source "../../assets/js/src/**/*.{js,jsx}";
 @source "../../assets/js/components/**/*.{js,jsx}";
 @source "../../plugins/**/*.{php,js}";

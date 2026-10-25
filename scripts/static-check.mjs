@@ -151,7 +151,7 @@ for ( const className of legacyClassNames ) {
 }
 
 const suiteVersion = read( 'style.css' ).match( /^Version:\s*(.+)$/m )?.[ 1 ];
-assert( suiteVersion === '1.3.0', 'theme release version must be 1.3.0' );
+assert( suiteVersion === '1.3.1', 'theme release version must be 1.3.1' );
 for ( const mainFile of [
 	'plugins/scam-dev-donate-widget/scam-dev-donate-widget.php',
 	'plugins/scam-dev-gallery/scam-dev-gallery.php',
@@ -161,7 +161,7 @@ for ( const mainFile of [
 	'plugins/scam-dev-vk-import/scam-dev-vk-import.php',
 ] ) {
 	assert(
-		read( mainFile ).includes( ' * Version: 1.3.0' ),
+		read( mainFile ).includes( ' * Version: 1.3.1' ),
 		`${ mainFile }: suite version is not synchronized`
 	);
 }

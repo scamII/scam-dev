@@ -24,6 +24,7 @@ cp style.css theme.json LICENSE "$THEME_DIR/"
 [[ -f screenshot.png ]] && cp screenshot.png "$THEME_DIR/"
 
 cp -R inc template-parts "$THEME_DIR/"
+[[ -d patterns ]] && cp -R patterns "$THEME_DIR/"
 cp assets/css/highlight.css assets/css/highlight-dark.css "$THEME_DIR/assets/css/"
 cp assets/js/theme-init.js "$THEME_DIR/assets/js/"
 cp build/*.css "$THEME_DIR/assets/css/"

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Scam Dev Matrix
  * Description: Защищённая регистрация пользователей Matrix и кешируемый виджет состояния сервера.
- * Version: 1.3.0
+ * Version: 1.3.1
  * Requires at least: 6.5
  * Requires PHP: 8.0
  * Author: Scam Dev
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SCAM_DEV_MATRIX_VERSION', '1.3.0' );
+define( 'SCAM_DEV_MATRIX_VERSION', '1.3.1' );
 define( 'SCAM_DEV_MATRIX_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SCAM_DEV_MATRIX_URL', plugin_dir_url( __FILE__ ) );
 define( 'SCAM_DEV_MATRIX_TEMPLATE', 'scam-dev-matrix-register.php' );

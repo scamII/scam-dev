@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $scam_dev_theme = wp_get_theme( get_template() );
-define( 'SCAM_DEV_VERSION', $scam_dev_theme->get( 'Version' ) ?: '1.3.0' );
+define( 'SCAM_DEV_VERSION', $scam_dev_theme->get( 'Version' ) ?: '1.3.1' );
 unset( $scam_dev_theme );
 
 require_once get_template_directory() . '/inc/setup.php';
